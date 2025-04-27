@@ -5,7 +5,9 @@ import logging
 def setup_console_handler(logger):
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(message)s", datefmt="%H:%M")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(message)s", datefmt="%H:%M"
+    )
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     logger.setLevel(logging.INFO)
@@ -32,7 +34,7 @@ def setup_file_and_console_handler(
 
 
 # Main logging setup function
-def logging_setup(
+def setup(
     logger, mode="c", filename="default.log", filemode="a"
 ):
     """
