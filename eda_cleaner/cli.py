@@ -9,7 +9,7 @@ description = """
 
 from argparse import ArgumentParser
 from .log_setup.setup import setup, logging
-from .connection import pg_load, csv_load
+from .loader import pg_load, csv_load
 from .cleaner import clean_pipeline
 
 
