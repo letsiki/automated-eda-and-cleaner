@@ -1,10 +1,15 @@
-from eda_cleaner.loader import pg_load, csv_load
 import pytest
 import pandas as pd
+from eda_cleaner.loader import pg_load, csv_load
 
 
+@pytest.mark.xfail(
+    reason="""
+    This is only meant to be tested locally. You may create a PG database adhering to the URI below and remove this mark: postgresql://postgres:Password21!!!@localhost:5432/pagila
+    """
+)
 @pytest.mark.parametrize(
-    "uri, , table_name, expected",
+    "uri, table_name, expected",
     [
         (
             "postgresql://postgres:Password21!!!@localhost:5432/pagila",
@@ -31,6 +36,7 @@ def test_pg_load(uri, table_name, expected):
     """
     assert type(pg_load(uri, table_name)) == expected
 
+
 @pytest.mark.parametrize(
     "csv_file, expected",
     [
@@ -51,6 +57,6 @@ def test_pg_load(uri, table_name, expected):
 def test_csv_load(csv_file, expected):
     """
     - Test that valid csv paths are correctly loaded into the dataframe
-    - Test that invalid csv_paths are successfully returning None    
+    - Test that invalid csv_paths are successfully returning None
     """
     assert type(csv_load(csv_file)) == expected

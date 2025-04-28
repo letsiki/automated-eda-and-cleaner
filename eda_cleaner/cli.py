@@ -60,7 +60,7 @@ def main():
         return
 
     # Cleaning
-    # df = clean_pipeline(df)
+    df = clean_pipeline(df)
 
 
 if __name__ == "__main__":
