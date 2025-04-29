@@ -1,5 +1,6 @@
 import pandas as pd
 from .log_setup.setup import setup, logging
+import re
 
 logger = logging.getLogger(__name__)
 setup(logger)
@@ -8,6 +9,7 @@ setup(logger)
 def clean_pipeline(df):
     df = standardize_column_names(df)
     df = remove_duplicates(df)
+    df = coerce_data_types(df)
     # df = handle_missing_values(df)
     return df
 
@@ -32,13 +34,37 @@ def standardize_column_names(df):
 
 
 def remove_duplicates(df):
-    # removing rows that match completely
-    df = df.drop_duplicates(keep="first")
-    # removing rows whose first column contains 'id' and have the same
-    # value in that column
-    if "id" in df.columns[0]:
-        df = df.drop_duplicates(keep="first", subset=[df.columns[0]])
-    return df
+    """
+    Function that removes duplicate rows, but also removes a row if
+    both of the following conditions apply:
+    1) Column 1 contains the word 'id' in its name (regex validation)
+    2) Column 1 has duplicate values
+    In any case we are removing duplicates with the 'keep-first' strategy
+    """
+    logger.info("Removing duplicate rows")
+    logger.info(f"{df.shape[0]} rows before operation")
+    logger.info("Removing...")
+    no_dup_df = df.drop_duplicates(keep="first")
+    if match := re.search(r"(?:(?<=_)|^)id(?:(?=_)|$)", no_dup_df.columns[0]):
+        logger.debug(no_dup_df.columns[0])
+        logger.debug(match.group() if match else match)
+        no_dup_df = no_dup_df.drop_duplicates(
+            keep="first", subset=[no_dup_df.columns[0]]
+        )
+    logger.info(f"{df.shape[0] - no_dup_df.shape[0]} rows removed")
+    logger.info(f"{no_dup_df.shape[0]} rows remaining.")
+
+    return no_dup_df
+
+
+def coerce_data_types(df):
+    """
+    Function that fixes column datatypes based on the following rules:
+    - If a column contains only 'yes' - 'no' or 'true' - 'false' both
+    case insensitive, the column will change its type to 'bool'
+    - If a column contains the word 'id' in its name (regex validation),
+    it will be converted to object.
+    """
 
 
 def handle_missing_values(df):

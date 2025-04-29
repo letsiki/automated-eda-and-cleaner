@@ -4,6 +4,7 @@ from eda_cleaner.cleaner import (
     standardize_column_names,
     handle_missing_values,
     remove_duplicates,
+    coerce_data_types,
 )
 
 
@@ -164,10 +165,117 @@ def test_standardize_column_names(dic, expected):
                 ],
             },
         ),
+        (
+            {
+                # Test duplicates in the first column only
+                # assuming it contains the word 'id' in the column
+                # name but not as a separated substring
+                # (we are verifying regex pattern here)
+                "idsome_idnaidmeid": [1, 1, 2, 3],
+                "name": ["Alice", "Bob", "Bob", "Charlie"],
+                "age": [25, 30, 30, 35],
+                "city": [
+                    "New York",
+                    "Los Angeles",
+                    "Los Angeles",
+                    "Chicago",
+                ],
+            },
+            {
+                "idsome_idnaidmeid": [1, 1, 2, 3],
+                "name": ["Alice", "Bob", "Bob", "Charlie"],
+                "age": [25, 30, 30, 35],
+                "city": [
+                    "New York",
+                    "Los Angeles",
+                    "Los Angeles",
+                    "Chicago",
+                ],
+            },
+        ),
     ],
 )
-def test_handle_missing_values(dic, expected):
+def test_remove_duplicates(dic, expected):
     assert (
-        remove_duplicates(pd.DataFrame(dic)).columns.to_list()
-        == pd.DataFrame(expected).columns.to_list()
+        remove_duplicates(pd.DataFrame(dic)).to_dict(orient='list')
+        == expected
     )
+
+
+# @pytest.mark.parametrize(
+#     "dic, expected",
+#     [
+#         (
+#             {
+#                 # Test entire duplicate rows
+#                 "num": [1, 1, 2, 3],
+#                 "name": ["Alice", "Alice", "Bob", "Charlie"],
+#                 "age": [25, 25, 30, 35],
+#                 "city": [
+#                     "New York",
+#                     "New York",
+#                     "Los Angeles",
+#                     "Chicago",
+#                 ],
+#             },
+#             {
+#                 "num": [1, 2, 3],
+#                 "name": ["Alice", "Bob", "Charlie"],
+#                 "age": [25, 30, 35],
+#                 "city": ["New York", "Los Angeles", "Chicago"],
+#             },
+#         ),
+#         (
+#             {
+#                 # Test duplicates in the first column only
+#                 # assuming it contains the word 'id' in the column name
+#                 "some_id": [1, 1, 2, 3],
+#                 "name": ["Alice", "Bob", "Bob", "Charlie"],
+#                 "age": [25, 30, 30, 35],
+#                 "city": [
+#                     "New York",
+#                     "Los Angeles",
+#                     "Los Angeles",
+#                     "Chicago",
+#                 ],
+#             },
+#             {
+#                 "some_id": [1, 2, 3],
+#                 "name": ["Alice", "Bob", "Charlie"],
+#                 "age": [25, 30, 35],
+#                 "city": ["New York", "Los Angeles", "Chicago"],
+#             },
+#         ),
+#         (
+#             {
+#                 # Test duplicates in the first column only
+#                 # assuming it doesn't contain the word 'id' in the column name
+#                 "some_name": [1, 1, 2, 3],
+#                 "name": ["Alice", "Bob", "Bob", "Charlie"],
+#                 "age": [25, 30, 30, 35],
+#                 "city": [
+#                     "New York",
+#                     "Los Angeles",
+#                     "Los Angeles",
+#                     "Chicago",
+#                 ],
+#             },
+#             {
+#                 "some_name": [1, 1, 2, 3],
+#                 "name": ["Alice", "Bob", "Bob", "Charlie"],
+#                 "age": [25, 30, 30, 35],
+#                 "city": [
+#                     "New York",
+#                     "Los Angeles",
+#                     "Los Angeles",
+#                     "Chicago",
+#                 ],
+#             },
+#         ),
+#     ],
+# )
+# def test_coerce_data_types(dic, expected):
+#     assert (
+#         coerce_data_types(pd.DataFrame(dic)).columns.to_list()
+#         == pd.DataFrame(expected).columns.to_list()
+#     )
