@@ -197,85 +197,101 @@ def test_standardize_column_names(dic, expected):
 )
 def test_remove_duplicates(dic, expected):
     assert (
-        remove_duplicates(pd.DataFrame(dic)).to_dict(orient='list')
+        remove_duplicates(pd.DataFrame(dic)).to_dict(orient="list")
         == expected
     )
 
 
-# @pytest.mark.parametrize(
-#     "dic, expected",
-#     [
-#         (
-#             {
-#                 # Test entire duplicate rows
-#                 "num": [1, 1, 2, 3],
-#                 "name": ["Alice", "Alice", "Bob", "Charlie"],
-#                 "age": [25, 25, 30, 35],
-#                 "city": [
-#                     "New York",
-#                     "New York",
-#                     "Los Angeles",
-#                     "Chicago",
-#                 ],
-#             },
-#             {
-#                 "num": [1, 2, 3],
-#                 "name": ["Alice", "Bob", "Charlie"],
-#                 "age": [25, 30, 35],
-#                 "city": ["New York", "Los Angeles", "Chicago"],
-#             },
-#         ),
-#         (
-#             {
-#                 # Test duplicates in the first column only
-#                 # assuming it contains the word 'id' in the column name
-#                 "some_id": [1, 1, 2, 3],
-#                 "name": ["Alice", "Bob", "Bob", "Charlie"],
-#                 "age": [25, 30, 30, 35],
-#                 "city": [
-#                     "New York",
-#                     "Los Angeles",
-#                     "Los Angeles",
-#                     "Chicago",
-#                 ],
-#             },
-#             {
-#                 "some_id": [1, 2, 3],
-#                 "name": ["Alice", "Bob", "Charlie"],
-#                 "age": [25, 30, 35],
-#                 "city": ["New York", "Los Angeles", "Chicago"],
-#             },
-#         ),
-#         (
-#             {
-#                 # Test duplicates in the first column only
-#                 # assuming it doesn't contain the word 'id' in the column name
-#                 "some_name": [1, 1, 2, 3],
-#                 "name": ["Alice", "Bob", "Bob", "Charlie"],
-#                 "age": [25, 30, 30, 35],
-#                 "city": [
-#                     "New York",
-#                     "Los Angeles",
-#                     "Los Angeles",
-#                     "Chicago",
-#                 ],
-#             },
-#             {
-#                 "some_name": [1, 1, 2, 3],
-#                 "name": ["Alice", "Bob", "Bob", "Charlie"],
-#                 "age": [25, 30, 30, 35],
-#                 "city": [
-#                     "New York",
-#                     "Los Angeles",
-#                     "Los Angeles",
-#                     "Chicago",
-#                 ],
-#             },
-#         ),
-#     ],
-# )
-# def test_coerce_data_types(dic, expected):
-#     assert (
-#         coerce_data_types(pd.DataFrame(dic)).columns.to_list()
-#         == pd.DataFrame(expected).columns.to_list()
-#     )
+@pytest.mark.parametrize(
+    "dic, expected",
+    [
+        (
+            {
+                # Test yes or no becomes bool
+                "num": [1, 2, 3],
+                "name": ["yEs", "No", "YeS"],
+                "age": [25, 30, 35],
+                "city": ["New York", "Los Angeles", "Chicago"],
+            },
+            {
+                "num": [1, 2, 3],
+                "name": [True, False, True],
+                "age": [25, 30, 35],
+                "city": ["New York", "Los Angeles", "Chicago"],
+            },
+        ),
+        (
+            {
+                #
+                "num": [1, 2, 3],
+                "name": ["truE", "FalSe", "True"],
+                "age": [25, 30, 35],
+                "city": ["New York", "Los Angeles", "Chicago"],
+            },
+            {
+                "num": [1, 2, 3],
+                "name": [True, False, True],
+                "age": [25, 30, 35],
+                "city": ["New York", "Los Angeles", "Chicago"],
+            },
+        ),
+        (
+            {
+                #
+                "num": [1, 2, 3],
+                "name": ["True", "Yes", "True"],
+                "age": [25, 30, 35],
+                "city": ["New York", "Los Angeles", "Chicago"],
+            },
+            {
+                "num": [1, 2, 3],
+                "name": ["True", "Yes", "True"],
+                "age": [25, 30, 35],
+                "city": ["New York", "Los Angeles", "Chicago"],
+            },
+        ),
+        (
+            {
+                #
+                "num": [1, 2, 3, 4],
+                "name": ["True", "False", "True", None],
+                "age": [25, 30, 35, 40],
+                "city": ["New York", "Los Angeles", "Chicago", None],
+            },
+            {
+                "num": [1, 2, 3, 4],
+                "name": [True, False, True, None],
+                "age": [25, 30, 35, 40],
+                "city": ["New York", "Los Angeles", "Chicago", None],
+            },
+        ),
+        (
+            {
+                #
+                "num": [1, 2, 3, 5],
+                "name": ["no", "Yes", "no", None],
+                "age": [25, 30, 35, 6],
+                "city": ["New York", "Los Angeles", "Chicago", None],
+            },
+            {
+                "num": [1, 2, 3, 5],
+                "name": [False, True, False, None],
+                "age": [25, 30, 35, 6],
+                "city": ["New York", "Los Angeles", "Chicago", None],
+            },
+        ),
+    ],
+)
+def test_coerce_data_types(dic, expected):
+    assert (
+        coerce_data_types(pd.DataFrame(dic)).to_dict(orient="list")
+        == expected
+    )
+    assert list(
+        map(
+            lambda x: getattr(x, "name"),
+            coerce_data_types(pd.DataFrame(dic)).dtypes,
+        )
+    ) == list(
+        map(lambda x: getattr(x, "name"), pd.DataFrame(expected).dtypes)
+    )

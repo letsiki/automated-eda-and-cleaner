@@ -1,6 +1,7 @@
 import pandas as pd
 from .log_setup.setup import setup, logging
 import re
+import pandas.api.types as pd_types
 
 logger = logging.getLogger(__name__)
 setup(logger)
@@ -45,7 +46,9 @@ def remove_duplicates(df):
     logger.info(f"{df.shape[0]} rows before operation")
     logger.info("Removing...")
     no_dup_df = df.drop_duplicates(keep="first")
-    if match := re.search(r"(?:(?<=_)|^)id(?:(?=_)|$)", no_dup_df.columns[0]):
+    if match := re.search(
+        r"(?:(?<=_)|^)id(?:(?=_)|$)", no_dup_df.columns[0]
+    ):
         logger.debug(no_dup_df.columns[0])
         logger.debug(match.group() if match else match)
         no_dup_df = no_dup_df.drop_duplicates(
@@ -57,7 +60,7 @@ def remove_duplicates(df):
     return no_dup_df
 
 
-def coerce_data_types(df):
+def coerce_data_types(df: pd.DataFrame):
     """
     Function that fixes column datatypes based on the following rules:
     - If a column contains only 'yes' - 'no' or 'true' - 'false' both
@@ -65,7 +68,62 @@ def coerce_data_types(df):
     - If a column contains the word 'id' in its name (regex validation),
     it will be converted to object.
     """
+    for column in df.columns:
+        if pd_types.is_object_dtype(df[column]):
+            df[column] = _validate_bool_col(df[column])
+        if (
+            pd_types.is_integer_dtype(df[column])
+            and re.search(r"(?:(?<=_)|^)id(?:(?=_)|$)", df[column].name)
+            and set(df[column]) == set(df[column].unique())
+        ):
+            df[column] = df[column].astype("object")
+    return df
 
 
 def handle_missing_values(df):
     pass
+
+
+def _validate_bool_col(column: pd.Series):
+    """
+    Detect boolean-like columns and convert them to columns of bool dtype
+    """
+    if all(
+        map(
+            lambda x: (
+                True
+                if not x or x.lower() in ("true", "false")
+                else False
+            ),
+            column,
+        )
+    ):
+        column = column.map(_true_false_to_bool)
+    elif all(
+        map(
+            lambda x: (
+                True if not x or x.lower() in ("yes", "no") else False
+            ),
+            column,
+        )
+    ):
+        column = column.map(_yes_no_to_bool)
+    return column
+
+
+def _yes_no_to_bool(x):
+    "Converts a value to True if it is 'yes', False otherwise"
+    if x is None:
+        return None
+    else:
+        func = lambda x: True if x.lower() == "yes" else False
+        return func(x)
+
+
+def _true_false_to_bool(x):
+    "Converts a value to True if it is 'true', False otherwise"
+    if x is None:
+        return None
+    else:
+        func = lambda x: True if x.lower() == "true" else False
+        return func(x)
