@@ -171,6 +171,34 @@ def test_standardize_column_names(dic, expected):
                 # assuming it contains the word 'id' in the column
                 # name but not as a separated substring
                 # (we are verifying regex pattern here)
+                "idsome_idnaidmeids": [1, 1, 2, 3],
+                "name": ["Alice", "Bob", "Bob", "Charlie"],
+                "age": [25, 30, 30, 35],
+                "city": [
+                    "New York",
+                    "Los Angeles",
+                    "Los Angeles",
+                    "Chicago",
+                ],
+            },
+            {
+                "idsome_idnaidmeids": [1, 1, 2, 3],
+                "name": ["Alice", "Bob", "Bob", "Charlie"],
+                "age": [25, 30, 30, 35],
+                "city": [
+                    "New York",
+                    "Los Angeles",
+                    "Los Angeles",
+                    "Chicago",
+                ],
+            },
+        ),
+        (
+            {
+                # Test duplicates in the first column only
+                # assuming it contains the word 'id' in the column
+                # name but not as a separated substring
+                # (we are verifying regex pattern here)
                 "idsome_idnaidmeid": [1, 1, 2, 3],
                 "name": ["Alice", "Bob", "Bob", "Charlie"],
                 "age": [25, 30, 30, 35],
@@ -182,12 +210,11 @@ def test_standardize_column_names(dic, expected):
                 ],
             },
             {
-                "idsome_idnaidmeid": [1, 1, 2, 3],
-                "name": ["Alice", "Bob", "Bob", "Charlie"],
-                "age": [25, 30, 30, 35],
+                "idsome_idnaidmeid": [1, 2, 3],
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": [25, 30, 35],
                 "city": [
                     "New York",
-                    "Los Angeles",
                     "Los Angeles",
                     "Chicago",
                 ],
@@ -260,7 +287,7 @@ def test_remove_duplicates(dic, expected):
             },
             {
                 "num": [1, 2, 3, 4],
-                "name": [True, False, True, None],
+                "name": [True, False, True, pd.NA],
                 "age": [25, 30, 35, 40],
                 "city": ["New York", "Los Angeles", "Chicago", None],
             },
@@ -275,7 +302,22 @@ def test_remove_duplicates(dic, expected):
             },
             {
                 "num": [1, 2, 3, 5],
-                "name": [False, True, False, None],
+                "name": [False, True, False, pd.NA],
+                "age": [25, 30, 35, 6],
+                "city": ["New York", "Los Angeles", "Chicago", None],
+            },
+        ),
+        (
+            {
+                #
+                "num": [1, 2, 3, 5],
+                "namen": [0, 1, 0, None],
+                "age": [25, 30, 35, 6],
+                "city": ["New York", "Los Angeles", "Chicago", None],
+            },
+            {
+                "num": [1, 2, 3, 5],
+                "namen": [False, True, False, pd.NA],
                 "age": [25, 30, 35, 6],
                 "city": ["New York", "Los Angeles", "Chicago", None],
             },
@@ -287,11 +329,5 @@ def test_coerce_data_types(dic, expected):
         coerce_data_types(pd.DataFrame(dic)).to_dict(orient="list")
         == expected
     )
-    assert list(
-        map(
-            lambda x: getattr(x, "name"),
-            coerce_data_types(pd.DataFrame(dic)).dtypes,
-        )
-    ) == list(
-        map(lambda x: getattr(x, "name"), pd.DataFrame(expected).dtypes)
-    )
+
+

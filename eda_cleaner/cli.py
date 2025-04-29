@@ -14,7 +14,7 @@ from .cleaner import clean_pipeline
 
 
 _URI = "postgresql://postgres:Password21!!!@localhost:5432/pagila"
-DEFAULT_DATASET = "data/KaggleV2-May-2016.csv"
+DEFAULT_DATASET = "data/medical_non_show.csv"
 
 logger = logging.getLogger(__name__)
 setup(logger)
