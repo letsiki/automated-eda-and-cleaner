@@ -86,7 +86,6 @@ def coerce_data_types(df: pd.DataFrame):
     logger.info(f"\nInitial dataframe dtypes:\n{df.dtypes}")
     for column in df.columns:
         logger.info(f"processing column {column}")
-        # logger.info(f"{df[column].name} is {df[column].dtype} before conv")
         # First convert Float columns to int if they can be converted
         if (
             pd_types.is_float_dtype(df[column])
@@ -102,8 +101,6 @@ def coerce_data_types(df: pd.DataFrame):
         ):
             df[column] = df[column].astype("Int64")
             logger.info(f"Changed {column}'s dtype to int64")
-
-        # if (df[column] > 10 * 9).any() and pd_types.is_float_dtype(df[column]):
 
         # pass size-2 object columns to validate_binary_col in order
         # to convert them to bool if they are eligible or categorical
