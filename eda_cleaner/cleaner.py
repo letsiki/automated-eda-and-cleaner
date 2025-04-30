@@ -14,7 +14,7 @@ def clean_pipeline(df):
     df = standardize_column_names(df)
     df = remove_duplicates(df)
     df = coerce_data_types(df)
-    # df = handle_missing_values(df)
+    df = handle_missing_values(df)
     print("\n*********Summary*********")
     print("Final Tables:\n" + str(df.dtypes))
     return df
@@ -75,10 +75,13 @@ def coerce_data_types(df: pd.DataFrame):
     """
     logger.info("Handling data types")
     for column in df.columns:
-        # pass object columns to validate_bool_col in order to convert
-        # them to bool if they are eligible
-        if pd_types.is_object_dtype(df[column]):
-            validated_column = _validate_bool_col(df[column])
+        # pass size-2 object columns to validate_binary_col in order
+        # to convert them to bool if they are eligible or categorical
+        if (
+            pd_types.is_object_dtype(df[column])
+            and df[column].dropna().unique().size == 2
+        ):
+            validated_column = _validate_binary_col(df[column])
             df[column] = validated_column
         elif (
             # This checks for numeric style bools and converts
@@ -105,18 +108,63 @@ def coerce_data_types(df: pd.DataFrame):
             logger.info(
                 f"Changed {df[column].name} from numeric, to string"
             )
+        # convert all other columns that have less than eight
+        # values into a category type
+        elif df[column].dropna().unique().size < 8:
+            df[column] = df[column].astype("category")
+
         logger.info("Finished handling data types")
 
     return df
 
 
-def handle_missing_values(df):
-    pass
+def handle_missing_values(df: pd.DataFrame, drop_thres=0.5):
+    logger.info("Handling missing Values")
+    for column in df.columns:
+        missing_values_prc = df[column].isnull().mean() * 100
+        logger.info(
+            f"{df[column].name} column has {round(missing_values_prc)}% of its values missing"
+        )
+        if missing_values_prc == 0:
+            continue
+        elif missing_values_prc >= 50:
+            logger.info(f"Dropping column {df[column].name}")
+            df = df.drop(column, axis=1)
+        else:
+            logger.info("Beginning Imputation")
+            df[column] = _impute(df[column])
+        logger.info("Moving on")
+    logger.info("Finished Handling Missing Values")
+    return df
 
 
-def _validate_bool_col(column: pd.Series):
+def _impute(column: pd.Series, nmode="median") -> pd.Series:
     """
-    Detect boolean-like columns and convert them to columns of bool dtype
+    Using nmode to impute the values of the provided column
+    In case of invalid input the default nmode will be used,
+    """
+    if pd_types.is_numeric_dtype(column):
+        if nmode == "median":
+            logger.info("Performing imputation with 'median'")
+            column = column.fillna(column.median())
+        elif nmode == "mean":
+            logger.info("Performing imputation with 'mean'")
+            column = column.fillna(column.mean())
+        else:
+            default_nmode = _impute.__defaults__[0]
+            logger.info(f"Performing imputation with '{default_nmode}'")
+            func = getattr(pd.Series, default_nmode)
+            column = column.fillna(func(column))
+    elif pd_types.is_bool_dtype or isinstance(
+        column, pd.CategoricalDtype
+    ):
+        column = column.fillna(column.mode())
+    return column
+
+
+def _validate_binary_col(column: pd.Series):
+    """
+    Detect boolean-like columns and convert them to columns of bool dtype, otherwise convert them to category
     """
     # Check if all non-null rows are 'true' or 'false'
     if all(
@@ -144,6 +192,8 @@ def _validate_bool_col(column: pd.Series):
         # if they are convert them to boolean
         column = column.map(_yes_no_to_bool).astype("boolean")
         logger.info(f"Changed {column.name}'s dtype to boolean")
+    else:
+        column = column.astype("category")
 
     return column
 

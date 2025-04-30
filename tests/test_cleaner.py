@@ -311,13 +311,13 @@ def test_remove_duplicates(dic, expected):
             {
                 #
                 "num": [1, 2, 3, 5],
-                "namen": [0, 1, 0, None],
+                "name": [0, 1, 0, None],
                 "age": [25, 30, 35, 6],
                 "city": ["New York", "Los Angeles", "Chicago", None],
             },
             {
                 "num": [1, 2, 3, 5],
-                "namen": [False, True, False, pd.NA],
+                "name": [False, True, False, pd.NA],
                 "age": [25, 30, 35, 6],
                 "city": ["New York", "Los Angeles", "Chicago", None],
             },
