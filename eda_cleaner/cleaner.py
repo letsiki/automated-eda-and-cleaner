@@ -21,8 +21,16 @@ def clean_pipeline(df):
     return df
 
 
-def standardize_column_names(df):
+def standardize_column_names(df: pd.DataFrame):
     logger.info("Standardizing column names")
+
+    # Pandas sometimes injects an index columns at the start
+    # In case it is there, we remove it.
+    if df.iloc[:, 0].name.startswith("Unnamed"):
+        logger.info("Removing pandas index column")
+        df = df.iloc[:, 1:]
+        logger.info("Index column removed")
+
     columns_nr = df.shape[1]
     logger.info(f"Found {columns_nr} columns")
     logger.info(
@@ -75,9 +83,9 @@ def coerce_data_types(df: pd.DataFrame):
     it will be converted to object.
     """
     logger.info("Handling data types")
-    logger.info(f'\nInitial dataframe dtypes:\n{df.dtypes}')
+    logger.info(f"\nInitial dataframe dtypes:\n{df.dtypes}")
     for column in df.columns:
-        logger.info(f'processing column {column}')
+        logger.info(f"processing column {column}")
         # logger.info(f"{df[column].name} is {df[column].dtype} before conv")
         # First convert Float columns to int if they can be converted
         if (
@@ -94,6 +102,9 @@ def coerce_data_types(df: pd.DataFrame):
         ):
             df[column] = df[column].astype("Int64")
             logger.info(f"Changed {column}'s dtype to int64")
+
+        # if (df[column] > 10 * 9).any() and pd_types.is_float_dtype(df[column]):
+
         # pass size-2 object columns to validate_binary_col in order
         # to convert them to bool if they are eligible or categorical
         if (
@@ -110,26 +121,21 @@ def coerce_data_types(df: pd.DataFrame):
             df[column] = df[column].astype("boolean")
             logger.info(f"Changed {column}'s dtype to boolean")
         # this one will look for a numeric 'id' column
-        # and convert its values to strings
+        # and convert its values to strings. I stick to numeric,
+        # and not just integers because very large numbers get
+        # converted, even without a floating point, to floats.
         elif (
-            pd_types.is_integer_dtype(df[column])
+            pd_types.is_numeric_dtype(df[column])
             and re.search(
                 r"((?:(?<=_)|^)id(?=_))|.*id$", df[column].name
             )
-            and set(df[column]) == set(df[column].unique())
+            # and list(df[column]) == list(df[column].unique())
         ):
             df[column] = df[column].astype("string")
             logger.info(
                 f"Changed {df[column].name} from numeric, to string"
             )
-        # convert all other columns that have less than eight
-        # values into a category type
-        # elif df[column].dropna().unique().size < 8:
-        #     if pd_types.is_integer_dtype(df[column]):
-        #         df[column] = df[column].astype('string')
-        #     elif pd_types.is_object_dtype(df[column]):
-        #         df[column] = df[column].astype('string')
-    logger.info(f'\nFinal dataframe dtypes:\n{df.dtypes}')
+    logger.info(f"\nFinal dataframe dtypes:\n{df.dtypes}")
     logger.info("Finished handling data types")
     return df
 
@@ -180,7 +186,7 @@ def _impute(column: pd.Series, nmode="median") -> pd.Series:
 
 def _validate_binary_col(column: pd.Series):
     """
-    Detect boolean-like columns and convert them to columns of bool dtype, otherwise convert them to category
+    Detect boolean-like columns and convert them to columns of bool dtype, otherwise convert them to string
     """
     # Check if all non-null rows are 'true' or 'false'
     if all(
@@ -209,7 +215,7 @@ def _validate_binary_col(column: pd.Series):
         column = column.map(_yes_no_to_bool).astype("boolean")
         logger.info(f"Changed {column.name}'s dtype to boolean")
     else:
-        column = column.astype("category")
+        column = column.astype("string")
 
     return column
 
