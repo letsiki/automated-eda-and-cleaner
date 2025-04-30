@@ -2,6 +2,7 @@ import pandas as pd
 from .log_setup.setup import setup, logging
 import re
 import pandas.api.types as pd_types
+import numpy as np
 
 logger = logging.getLogger(__name__)
 setup(logger)
@@ -74,47 +75,62 @@ def coerce_data_types(df: pd.DataFrame):
     it will be converted to object.
     """
     logger.info("Handling data types")
+    logger.info(f'\nInitial dataframe dtypes:\n{df.dtypes}')
     for column in df.columns:
+        logger.info(f'processing column {column}')
+        # logger.info(f"{df[column].name} is {df[column].dtype} before conv")
+        # First convert Float columns to int if they can be converted
+        if (
+            pd_types.is_float_dtype(df[column])
+            and df[column]
+            .apply(
+                lambda x: (
+                    True
+                    if (float.is_integer(x) or np.isnan(x))
+                    else False
+                )
+            )
+            .all()
+        ):
+            df[column] = df[column].astype("Int64")
+            logger.info(f"Changed {column}'s dtype to int64")
         # pass size-2 object columns to validate_binary_col in order
         # to convert them to bool if they are eligible or categorical
         if (
             pd_types.is_object_dtype(df[column])
-            and df[column].dropna().unique().size == 2
+            and df[column].dropna().str.lower().unique().size == 2
         ):
             validated_column = _validate_binary_col(df[column])
             df[column] = validated_column
-        elif (
-            # This checks for numeric style bools and converts
-            # to boolean if eligible  (1, 0)
-            pd_types.is_numeric_dtype(df[column])
-            and df[column].dropna().unique().size == 2
+        # This checks for numeric style bools and converts
+        # to boolean if eligible  (1, 0)
+        elif pd_types.is_integer_dtype(df[column]) and all(
+            x in (0, 1) for x in df[column].dropna()
         ):
-            df[column] = (
-                df[column]
-                .replace({0: False, 1: True})
-                .astype("boolean")
-            )
+            df[column] = df[column].astype("boolean")
             logger.info(f"Changed {column}'s dtype to boolean")
+        # this one will look for a numeric 'id' column
+        # and convert its values to strings
         elif (
-            # this one will look for a numeric 'id' column
-            # and convert its values to strings
-            pd_types.is_numeric_dtype(df[column])
+            pd_types.is_integer_dtype(df[column])
             and re.search(
                 r"((?:(?<=_)|^)id(?=_))|.*id$", df[column].name
             )
             and set(df[column]) == set(df[column].unique())
         ):
-            df[column] = df[column].astype("str")
+            df[column] = df[column].astype("string")
             logger.info(
                 f"Changed {df[column].name} from numeric, to string"
             )
         # convert all other columns that have less than eight
         # values into a category type
-        elif df[column].dropna().unique().size < 8:
-            df[column] = df[column].astype("category")
-
-        logger.info("Finished handling data types")
-
+        # elif df[column].dropna().unique().size < 8:
+        #     if pd_types.is_integer_dtype(df[column]):
+        #         df[column] = df[column].astype('string')
+        #     elif pd_types.is_object_dtype(df[column]):
+        #         df[column] = df[column].astype('string')
+    logger.info(f'\nFinal dataframe dtypes:\n{df.dtypes}')
+    logger.info("Finished handling data types")
     return df
 
 

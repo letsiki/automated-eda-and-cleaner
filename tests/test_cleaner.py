@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+import numpy as np
 from eda_cleaner.cleaner import (
     standardize_column_names,
     handle_missing_values,
@@ -265,13 +266,13 @@ def test_remove_duplicates(dic, expected):
         (
             {
                 #
-                "num": [1, 2, 3],
+                "num": [1, 0, None],
                 "name": ["True", "Yes", "True"],
                 "age": [25, 30, 35],
                 "city": ["New York", "Los Angeles", "Chicago"],
             },
             {
-                "num": [1, 2, 3],
+                "num": [1, 0, pd.NA],
                 "name": ["True", "Yes", "True"],
                 "age": [25, 30, 35],
                 "city": ["New York", "Los Angeles", "Chicago"],
@@ -297,13 +298,13 @@ def test_remove_duplicates(dic, expected):
                 #
                 "num": [1, 2, 3, 5],
                 "name": ["no", "Yes", "no", None],
-                "age": [25, 30, 35, 6],
+                "age": [25, 30, 35, None],
                 "city": ["New York", "Los Angeles", "Chicago", None],
             },
             {
                 "num": [1, 2, 3, 5],
                 "name": [False, True, False, pd.NA],
-                "age": [25, 30, 35, 6],
+                "age": [25, 30, 35, pd.NA],
                 "city": ["New York", "Los Angeles", "Chicago", None],
             },
         ),
@@ -329,5 +330,3 @@ def test_coerce_data_types(dic, expected):
         coerce_data_types(pd.DataFrame(dic)).to_dict(orient="list")
         == expected
     )
-
-
