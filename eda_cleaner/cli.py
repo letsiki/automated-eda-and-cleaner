@@ -11,6 +11,9 @@ from argparse import ArgumentParser
 from .log_setup.setup import setup, logging
 from .loader import pg_load, csv_load
 from .cleaner import clean_pipeline
+from .profiler import assign_column_eda_types, generate_summary
+from .utility import df_print
+import json
 
 
 _URI = "postgresql://postgres:Password21!!!@localhost:5432/pagila"
@@ -59,9 +62,19 @@ def main():
         logger.info("No data loaded, exiting")
         return
 
+    # print(df.sample(n=5).to_string(index=False))
     # Cleaning
+    df_print(df)
     df = clean_pipeline(df)
-
+    df = assign_column_eda_types(df)
+    df_print(df)
+    summary = generate_summary(df)
+    # print(json.dumps(summary, indent=2, default=str))
+    # print(df.sample(n=5).to_string(index=False))
+    print(summary)
 
 if __name__ == "__main__":
     main()
+
+
+    

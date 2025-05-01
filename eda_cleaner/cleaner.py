@@ -16,8 +16,8 @@ def clean_pipeline(df):
     df = remove_duplicates(df)
     df = coerce_data_types(df)
     df = handle_missing_values(df)
-    print("\n*********Summary*********")
-    print("Final Tables:\n" + str(df.dtypes))
+    # print("\n*********Summary*********")
+    # print("Final Tables:\n" + str(df.dtypes))
     return df
 
 
@@ -59,7 +59,14 @@ def remove_duplicates(df):
     logger.info("Removing duplicate rows")
     logger.info(f"{df.shape[0]} rows before operation")
     logger.info("Removing...")
-    no_dup_df = df.drop_duplicates(keep="first")
+    try:
+        no_dup_df = df.drop_duplicates(keep="first")
+    except TypeError:
+        logger.error(
+            "Dataset contains unhashable type columns, cannot remove rows based on full row duplication."
+        )
+        no_dup_df = df
+    logger.info("Now checking for duplicates by first column id")
     if match := re.search(
         r"((?:(?<=_)|^)id(?=_))|.*id$", no_dup_df.columns[0]
     ):
@@ -74,7 +81,7 @@ def remove_duplicates(df):
     return no_dup_df
 
 
-def coerce_data_types(df: pd.DataFrame):
+def coerce_data_types(df: pd.DataFrame) -> pd.DataFrame:
     """
     Function that fixes column datatypes based on the following rules:
     - If a column contains only 'yes' - 'no' or 'true' - 'false' both
@@ -83,56 +90,10 @@ def coerce_data_types(df: pd.DataFrame):
     it will be converted to object.
     """
     logger.info("Handling data types")
-    logger.info(f"\nInitial dataframe dtypes:\n{df.dtypes}")
-    for column in df.columns:
-        logger.info(f"processing column {column}")
-        # First convert Float columns to int if they can be converted
-        if (
-            pd_types.is_float_dtype(df[column])
-            and df[column]
-            .apply(
-                lambda x: (
-                    True
-                    if (float.is_integer(x) or np.isnan(x))
-                    else False
-                )
-            )
-            .all()
-        ):
-            df[column] = df[column].astype("Int64")
-            logger.info(f"Changed {column}'s dtype to int64")
-
-        # pass size-2 object columns to validate_binary_col in order
-        # to convert them to bool if they are eligible or categorical
-        if (
-            pd_types.is_object_dtype(df[column])
-            and df[column].dropna().str.lower().unique().size == 2
-        ):
-            validated_column = _validate_binary_col(df[column])
-            df[column] = validated_column
-        # This checks for numeric style bools and converts
-        # to boolean if eligible  (1, 0)
-        elif pd_types.is_integer_dtype(df[column]) and all(
-            x in (0, 1) for x in df[column].dropna()
-        ):
-            df[column] = df[column].astype("boolean")
-            logger.info(f"Changed {column}'s dtype to boolean")
-        # this one will look for a numeric 'id' column
-        # and convert its values to strings. I stick to numeric,
-        # and not just integers because very large numbers get
-        # converted, even without a floating point, to floats.
-        elif (
-            pd_types.is_numeric_dtype(df[column])
-            and re.search(
-                r"((?:(?<=_)|^)id(?=_))|.*id$", df[column].name
-            )
-            # and list(df[column]) == list(df[column].unique())
-        ):
-            df[column] = df[column].astype("string")
-            logger.info(
-                f"Changed {df[column].name} from numeric, to string"
-            )
-    logger.info(f"\nFinal dataframe dtypes:\n{df.dtypes}")
+    for col_name in df.columns:
+        logger.info(f"Processing column {col_name}")
+        col_series = df[col_name]
+        df[col_name] = _coerce_series(col_series)
     logger.info("Finished handling data types")
     return df
 
@@ -155,6 +116,70 @@ def handle_missing_values(df: pd.DataFrame, drop_thres=0.5):
         logger.info("Moving on")
     logger.info("Finished Handling Missing Values")
     return df
+
+
+def _coerce_series(col_series: pd.Series) -> pd.Series:
+    col_name = col_series.name  # Extracting column name from the series
+
+    if _is_float_that_can_be_int(col_series):
+        col_series = col_series.astype("Int64")
+        logger.info(f"Changed {col_name}'s dtype to Int64")
+
+    if _is_id_column(col_series):
+        col_series = col_series.astype("string")
+        logger.info(f"Changed {col_name} from numeric to string")
+
+    elif _is_binary_string(col_series):
+        col_series = _validate_binary_col(col_series)
+
+    elif _is_numeric_binary(col_series):
+        col_series = col_series.astype("boolean")
+        logger.info(f"Changed {col_name}'s dtype to boolean")
+
+    col_series = _convert_dates(col_series)
+    return col_series
+
+
+def _is_float_that_can_be_int(col_series: pd.Series) -> bool:
+    return (
+        pd_types.is_float_dtype(col_series)
+        and col_series.apply(
+            lambda x: pd.isna(x) or float(x).is_integer()
+        ).all()
+    )
+
+
+def _is_binary_string(col_series: pd.Series) -> bool:
+    return (
+        pd_types.is_object_dtype(col_series)
+        and col_series.dropna().str.lower().nunique() == 2
+    )
+
+
+def _is_numeric_binary(col_series: pd.Series) -> bool:
+    return pd_types.is_integer_dtype(col_series) and set(
+        col_series.dropna().unique()
+    ).issubset({0, 1})
+
+
+def _is_id_column(col_series: pd.Series) -> bool:
+    col_name = col_series.name
+    return pd_types.is_numeric_dtype(col_series) and re.search(
+        r"((?:(?<=_)|^)id(?=_))|.*id$", col_name, re.IGNORECASE
+    )
+
+
+def _convert_dates(col_series: pd.Series) -> pd.Series:
+    if pd_types.is_object_dtype(col_series) or pd_types.is_string_dtype(
+        col_series
+    ):
+        converted = pd.to_datetime(
+            col_series, errors="coerce", utc=True
+        )
+        if converted.notna().mean() > 0.8:
+            logger.info(f"Converted {col_series.name} to datetime")
+            return converted
+    return col_series
 
 
 def _impute(column: pd.Series, nmode="median") -> pd.Series:

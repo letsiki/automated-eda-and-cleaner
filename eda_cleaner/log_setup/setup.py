@@ -10,7 +10,7 @@ def setup_console_handler(logger):
     )
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
 
 # File handler setup
