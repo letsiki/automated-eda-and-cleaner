@@ -1,8 +1,8 @@
 from .log_setup.setup import setup, logging
 import pandas as pd
+import numpy as np
 from pandas.core.generic import NDFrame
 import pandas.api.types as pd_types
-import numpy as np
 import re
 
 
@@ -31,10 +31,11 @@ def assign_column_eda_types(df: pd.DataFrame):
         elif pd_types.is_datetime64_any_dtype(df[col_name]):
             df[col_name].eda_type = "date"
         elif _is_id_column(df[col_name]):
-            if col_name == df.columns[0]:
+            # if col_name == df.columns[0]:
+            if df[col_name].nunique(dropna=True) == df.shape[0]:
                 df[col_name].eda_type = "primary id"
             else:
-                df[col_name].eda_type = "other id"
+                df[col_name].eda_type = "foreign_id"
         elif df[col_name].nunique(dropna=True) < 13:
             df[col_name].eda_type = "category"
         elif pd_types.is_numeric_dtype(df[col_name]):
@@ -63,9 +64,12 @@ def generate_summary(df: pd.DataFrame):
     for col in df.columns:
         series = df[col]
         eda_type = getattr(series, "eda_type", "unknown")
-        col_summary = {"eda_type": eda_type}
+        col_summary = {
+            "eda_type": eda_type,
+            "dtype": df[col].dtype.name,
+        }
 
-        if eda_type in {"unhashable", "primary id", "other_id"}:
+        if eda_type in {"unhashable"}:
             summary[col] = col_summary
             continue
 
@@ -93,15 +97,24 @@ def generate_summary(df: pd.DataFrame):
             )
 
         elif eda_type in {"boolean", "category"}:
-            vc = series.value_counts(dropna=False)
+            vc = series.apply(str).value_counts(dropna=False)
             col_summary["value_counts"] = vc.to_dict()
 
         summary[col] = col_summary
 
-    # return _sanitize_for_print(summary)
-    return pd.DataFrame.from_dict(summary).to_json(
-        indent=4
-    )  # , orient="index" would reverse the outer-keys of the dict
+    return summary
+
+    # ---------------The alternative returns-----------------------
+    # return json.dumps(summary, indent=4, default=str)
+
+    # below will also list
+    # unrelated metrics for each column with the
+    # value of null
+    # -------------------------------------------
+    # return pd.DataFrame.from_dict(summary).to_json(
+    #     indent=4,
+    # )  # , orient="index" would reverse the outer-keys of the dict
+    # --------------------------------------------------------------
 
 
 def _is_id_column(col_series: pd.Series) -> bool:

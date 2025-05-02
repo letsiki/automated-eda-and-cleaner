@@ -9,21 +9,6 @@ from eda_cleaner.cleaner import (
 )
 
 
-# @pytest.fixture
-# def cleansed_dataframe():
-#     """
-#     This will be the expected result for
-#     """
-#     data = {
-#         "id": [1, 2, 3],
-#         "name": ["Alice", "Bob", "Charlie"],
-#         "age": [25, 30, 35],
-#         "city": ["New York", "Los Angeles", "Chicago"],
-#     }
-#     df = pd.DataFrame(data)
-#     return df
-
-
 @pytest.mark.parametrize(
     "dic, expected",
     [
@@ -119,108 +104,28 @@ def test_standardize_column_names(dic, expected):
                 "city": ["New York", "Los Angeles", "Chicago"],
             },
         ),
-        (
-            {
-                # Test duplicates in the first column only
-                # assuming it contains the word 'id' in the column name
-                "some_id": [1, 1, 2, 3],
-                "name": ["Alice", "Bob", "Bob", "Charlie"],
-                "age": [25, 30, 30, 35],
-                "city": [
-                    "New York",
-                    "Los Angeles",
-                    "Los Angeles",
-                    "Chicago",
-                ],
-            },
-            {
-                "some_id": [1, 2, 3],
-                "name": ["Alice", "Bob", "Charlie"],
-                "age": [25, 30, 35],
-                "city": ["New York", "Los Angeles", "Chicago"],
-            },
-        ),
-        (
-            {
-                # Test duplicates in the first column only
-                # assuming it doesn't contain the word 'id' in the column name
-                "some_name": [1, 1, 2, 3],
-                "name": ["Alice", "Bob", "Bob", "Charlie"],
-                "age": [25, 30, 30, 35],
-                "city": [
-                    "New York",
-                    "Los Angeles",
-                    "Los Angeles",
-                    "Chicago",
-                ],
-            },
-            {
-                "some_name": [1, 1, 2, 3],
-                "name": ["Alice", "Bob", "Bob", "Charlie"],
-                "age": [25, 30, 30, 35],
-                "city": [
-                    "New York",
-                    "Los Angeles",
-                    "Los Angeles",
-                    "Chicago",
-                ],
-            },
-        ),
-        (
-            {
-                # Test duplicates in the first column only
-                # assuming it contains the word 'id' in the column
-                # name but not as a separated substring
-                # (we are verifying regex pattern here)
-                "idsome_idnaidmeids": [1, 1, 2, 3],
-                "name": ["Alice", "Bob", "Bob", "Charlie"],
-                "age": [25, 30, 30, 35],
-                "city": [
-                    "New York",
-                    "Los Angeles",
-                    "Los Angeles",
-                    "Chicago",
-                ],
-            },
-            {
-                "idsome_idnaidmeids": [1, 1, 2, 3],
-                "name": ["Alice", "Bob", "Bob", "Charlie"],
-                "age": [25, 30, 30, 35],
-                "city": [
-                    "New York",
-                    "Los Angeles",
-                    "Los Angeles",
-                    "Chicago",
-                ],
-            },
-        ),
-        (
-            {
-                # Test duplicates in the first column only
-                # assuming it contains the word 'id' in the column
-                # name but not as a separated substring
-                # (we are verifying regex pattern here)
-                "idsome_idnaidmeid": [1, 1, 2, 3],
-                "name": ["Alice", "Bob", "Bob", "Charlie"],
-                "age": [25, 30, 30, 35],
-                "city": [
-                    "New York",
-                    "Los Angeles",
-                    "Los Angeles",
-                    "Chicago",
-                ],
-            },
-            {
-                "idsome_idnaidmeid": [1, 2, 3],
-                "name": ["Alice", "Bob", "Charlie"],
-                "age": [25, 30, 35],
-                "city": [
-                    "New York",
-                    "Los Angeles",
-                    "Chicago",
-                ],
-            },
-        ),
+        # DEPRECATED
+        # (
+        #     {
+        #         # Test that identical columns,
+        #         # different id's are removed
+        #         "some_id": [1, 2, 3, 4],
+        #         "name": ["Alice", "Bob", "Bob", "Charlie"],
+        #         "age": [25, 30, 30, 35],
+        #         "city": [
+        #             "New York",
+        #             "Los Angeles",
+        #             "Los Angeles",
+        #             "Chicago",
+        #         ],
+        #     },
+        #     {
+        #         "some_id": [1, 2, 4],
+        #         "name": ["Alice", "Bob", "Charlie"],
+        #         "age": [25, 30, 35],
+        #         "city": ["New York", "Los Angeles", "Chicago"],
+        #     },
+        # ),
     ],
 )
 def test_remove_duplicates(dic, expected):

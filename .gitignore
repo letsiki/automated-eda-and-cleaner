@@ -2,4 +2,6 @@ personal-docs/
 __pycache__
 *.code-workspace
 .vscode/
-
+data/Kaggle*.csv
+data/medical*.csv
+data/test*.csv

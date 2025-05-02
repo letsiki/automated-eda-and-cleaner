@@ -13,11 +13,12 @@ from .loader import pg_load, csv_load
 from .cleaner import clean_pipeline
 from .profiler import assign_column_eda_types, generate_summary
 from .utility import df_print
-import json
+from .writer import write_json, write_summary_table
+from .visualizer import visualize, plot_correlation_heatmap
 
 
-_URI = "postgresql://postgres:Password21!!!@localhost:5432/pagila"
-DEFAULT_DATASET = "data/medical_non_show.csv"
+# _URI = "postgresql://postgres:Password21!!!@localhost:5432/pagila"
+DEFAULT_DATASET = "data/global-air-pollution-dataset.csv"
 
 logger = logging.getLogger(__name__)
 setup(logger)
@@ -64,17 +65,17 @@ def main():
 
     # print(df.sample(n=5).to_string(index=False))
     # Cleaning
+    df_rows = df.shape[0]
     df_print(df)
     df = clean_pipeline(df)
     df = assign_column_eda_types(df)
     df_print(df)
     summary = generate_summary(df)
-    # print(json.dumps(summary, indent=2, default=str))
-    # print(df.sample(n=5).to_string(index=False))
-    print(summary)
+    write_json(summary)
+    write_summary_table(summary)
+    visualize(df)
+    plot_correlation_heatmap(df)
+
 
 if __name__ == "__main__":
     main()
-
-
-    

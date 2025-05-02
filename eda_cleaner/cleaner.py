@@ -2,7 +2,6 @@ import pandas as pd
 from .log_setup.setup import setup, logging
 import re
 import pandas.api.types as pd_types
-import numpy as np
 
 logger = logging.getLogger(__name__)
 setup(logger)
@@ -48,12 +47,13 @@ def standardize_column_names(df: pd.DataFrame):
     return df
 
 
-def remove_duplicates(df):
+def remove_duplicates(df: pd.DataFrame):
     """
-    Function that removes duplicate rows, but also removes a row if
-    both of the following conditions apply:
-    1) Column 1 contains the word 'id' in its name (regex validation)
-    2) Column 1 has duplicate values
+    Function that removes duplicate rows, but also removes a row by following the procedure below:
+    (Rest is deprecated)
+    1) Identify 'id' column names (regex validation)
+    2) Check for duplication, excluding the 'id' columns in the subset
+    3) Remove duplication, keep in the first occurrence.
     In any case we are removing duplicates with the 'keep-first' strategy
     """
     logger.info("Removing duplicate rows")
@@ -66,15 +66,27 @@ def remove_duplicates(df):
             "Dataset contains unhashable type columns, cannot remove rows based on full row duplication."
         )
         no_dup_df = df
-    logger.info("Now checking for duplicates by first column id")
-    if match := re.search(
-        r"((?:(?<=_)|^)id(?=_))|.*id$", no_dup_df.columns[0]
-    ):
-        logger.debug(no_dup_df.columns[0])
-        logger.debug(match.group() if match else match)
-        no_dup_df = no_dup_df.drop_duplicates(
-            keep="first", subset=[no_dup_df.columns[0]]
-        )
+
+    # DEPRECATED
+    # -----------------------------------------------------
+    # id_regex_pattern = r"((?:(?<=_)|^)id(?=_))|.*id$"
+    # subset = [
+    #     col_name
+    #     for col_name in no_dup_df.columns
+    #     if not (
+    #         re.search(id_regex_pattern, col_name)
+    #         and no_dup_df[col_name].nunique(dropna=True)
+    #         == no_dup_df.shape[0]
+    #     )
+    # ]
+    # try:
+    #     no_dup_df = no_dup_df.drop_duplicates(
+    #         subset=subset, keep="first"
+    #     )
+    # except TypeError:
+    #     logger.error(
+    #         "Dataset contains unhashable type columns, cannot remove rows based on full row duplication."
+    #     )
     logger.info(f"{df.shape[0] - no_dup_df.shape[0]} rows removed")
     logger.info(f"{no_dup_df.shape[0]} rows remaining.")
     logger.info(f"Finished removing duplicate rows")
@@ -83,11 +95,15 @@ def remove_duplicates(df):
 
 def coerce_data_types(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Function that fixes column datatypes based on the following rules:
-    - If a column contains only 'yes' - 'no' or 'true' - 'false' both
-    case insensitive, the column will change its type to 'bool'
-    - If a column contains the word 'id' in its name (regex validation),
-    it will be converted to object.
+    Processes column series, and applies _coerce_series to
+    each resulting in a dataframe with the correct data types
+
+    Parameters:
+        df (pd.DataFrame): The source Dataframe
+
+    Returns:
+        df (pd.DataFrame): The source dataframe with updated
+        column series
     """
     logger.info("Handling data types")
     for col_name in df.columns:
@@ -119,6 +135,19 @@ def handle_missing_values(df: pd.DataFrame, drop_thres=0.5):
 
 
 def _coerce_series(col_series: pd.Series) -> pd.Series:
+    """
+    Function that fixes a column series datatypes based on the following rules:
+    - If a column contains only 'yes' - 'no' or 'true' - 'false' both
+    case insensitive, the column will change its type to 'bool'
+    - If a column contains the word 'id' in its name (regex validation),
+    it will be converted to object.
+
+    Parameters:
+        col_series (pd.Series): The source column series
+
+    Returns:
+        Either col_series as is, or a copy of it with updated it type.
+    """
     col_name = col_series.name  # Extracting column name from the series
 
     if _is_float_that_can_be_int(col_series):
@@ -150,9 +179,10 @@ def _is_float_that_can_be_int(col_series: pd.Series) -> bool:
 
 
 def _is_binary_string(col_series: pd.Series) -> bool:
+    """ """
     return (
         pd_types.is_object_dtype(col_series)
-        and col_series.dropna().str.lower().nunique() == 2
+        and col_series.apply(str).str.lower().nunique(dropna=True) == 2
     )
 
 
@@ -182,31 +212,37 @@ def _convert_dates(col_series: pd.Series) -> pd.Series:
     return col_series
 
 
-def _impute(column: pd.Series, nmode="median") -> pd.Series:
+def _impute(col_series: pd.Series, nmode="median") -> pd.Series:
     """
     Using nmode to impute the values of the provided column
     In case of invalid input the default nmode will be used,
     """
-    if pd_types.is_numeric_dtype(column):
+    logger.info(col_series.name)
+    logger.info(col_series.dtype.name)
+    logger.info(col_series.sample(5))
+    if (
+        pd_types.is_numeric_dtype(col_series)
+        and col_series.nunique(dropna=True) < 13
+    ):
         if nmode == "median":
             logger.info("Performing imputation with 'median'")
-            column = column.fillna(column.median())
+            col_series = col_series.fillna(col_series.median())
         elif nmode == "mean":
             logger.info("Performing imputation with 'mean'")
-            column = column.fillna(column.mean())
+            col_series = col_series.fillna(col_series.mean())
         else:
             default_nmode = _impute.__defaults__[0]
             logger.info(f"Performing imputation with '{default_nmode}'")
             func = getattr(pd.Series, default_nmode)
-            column = column.fillna(func(column))
+            col_series = col_series.fillna(func(col_series))
     elif pd_types.is_bool_dtype or isinstance(
-        column, pd.CategoricalDtype
+        col_series, pd.CategoricalDtype
     ):
-        column = column.fillna(column.mode())
-    return column
+        col_series = col_series.fillna(col_series.mode())
+    return col_series
 
 
-def _validate_binary_col(column: pd.Series):
+def _validate_binary_col(col_series: pd.Series):
     """
     Detect boolean-like columns and convert them to columns of bool dtype, otherwise convert them to string
     """
@@ -215,31 +251,45 @@ def _validate_binary_col(column: pd.Series):
         map(
             lambda x: (
                 True
-                if not x or x.lower() in ("true", "false")
+                if (
+                    not x
+                    or str(x).lower() == "true"
+                    or str(x).lower() == "false"
+                )
+                and not re.match(r"\s*$", str(x))
                 else False
             ),
-            column,
+            col_series,
         )
     ):
         # if they are convert them to boolean
-        column = column.map(_true_false_to_bool).astype("boolean")
-        logger.info(f"Changed {column.name}'s dtype to boolean")
+        col_series = col_series.map(_true_false_to_bool).astype(
+            "boolean"
+        )
+        logger.info(f"Changed {col_series.name}'s dtype to boolean")
     # Check if all non-null rows are 'yes' or 'no'
     elif all(
         map(
             lambda x: (
-                True if not x or x.lower() in ("yes", "no") else False
+                True
+                if (
+                    not x
+                    or str(x).lower() == "yes"
+                    or str(x).lower() == "no"
+                )
+                and not re.match(r"\s*$", str(x))
+                else False
             ),
-            column,
+            col_series,
         )
     ):
         # if they are convert them to boolean
-        column = column.map(_yes_no_to_bool).astype("boolean")
-        logger.info(f"Changed {column.name}'s dtype to boolean")
+        col_series = col_series.map(_yes_no_to_bool).astype("boolean")
+        logger.info(f"Changed {col_series.name}'s dtype to boolean")
     else:
-        column = column.astype("string")
+        col_series = col_series.astype("string")
 
-    return column
+    return col_series
 
 
 def _yes_no_to_bool(x):
