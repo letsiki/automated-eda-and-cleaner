@@ -1,10 +1,31 @@
-description = """
-    CLI tool that loads tabular data, cleans it, and performs EDA automatically. 
-    You can either load a Postgres db, a csv file, or the default dataset:
-    1) For Postgres -> 
-    python -m eda_cleaner.cli -d 'postgresql://postgres:Password@localhost:5432/db_name 
-    2) For CSV -> python -m eda_cleaner.cli -c csv_file.csv
-    3) For default -> python -m eda_cleaner.cli and then type 'y'
+"""
+cli.py
+
+Command-line interface for the eda_cleaner package. This tool loads a tabular dataset,
+cleans it, performs automated exploratory data analysis (EDA), and outputs summary reports
+and visualizations.
+
+Usage options:
+    1) Load from a PostgreSQL database:
+       python -m eda_cleaner.cli -d 'postgresql://user:password@host:port/dbname'
+
+    2) Load from a CSV file:
+       python -m eda_cleaner.cli -c path/to/file.csv
+
+    3) Load a default dataset:
+       python -m eda_cleaner.cli
+       (then respond with 'y' when prompted)
+
+Arguments:
+    path                A connection string (for -d) or file path (for -c)
+    -d, --db_connection Indicates the path argument is a PostgreSQL URI
+    -c, --csv_path      Indicates the path argument is a CSV file path
+
+Outputs:
+    - Cleaned dataset written to 'output/cleaned_data.csv'
+    - EDA summary table written to 'output/summary_table.csv'
+    - JSON summary written to 'output/summary.json'
+    - Visualizations saved in the 'output/plots/' directory
 """
 
 from argparse import ArgumentParser
@@ -12,34 +33,36 @@ from .log_setup.setup import setup, logging
 from .loader import pg_load, csv_load
 from .cleaner import clean_pipeline
 from .profiler import assign_column_eda_types, generate_summary
-from .writer import write_json, write_summary_table
+from .writer import write_json, write_summary_table, write_df
 from .visualizer import generate_plots
 
-
-# _URI = "postgresql://postgres:Password21!!!@localhost:5432/pagila"
 DEFAULT_DATASET = "data/global-air-pollution-dataset.csv"
 
 logger = logging.getLogger(__name__)
 setup(logger)
 
 # set up argument parsing
-parser = ArgumentParser(description=description)
+parser = ArgumentParser()
 parser.add_argument("path", nargs="?")
 parser.add_argument("-d", "--db_connection", action="store_true")
 parser.add_argument("-c", "--csv_path", action="store_true")
 args = parser.parse_args()
 
-# we now have two documentation sources, cli.py --help, from the
-# terminal, and help(cli) from the python console. With the following
-# line we are making both the same
-__doc__ = parser.format_help()
-
 
 def main():
-    # read arguments, invoke appropriate functions
-    # argparse injects a help arguments and populates with some
-    # metadata and also passes it the description we provided
-    # to the argparse constructor.
+    """
+    Main entry point for the CLI.
+
+    Based on parsed command-line arguments, this function:
+    - Loads a dataset from PostgreSQL, CSV, or default file
+    - Cleans the data via the cleaning pipeline
+    - Assigns EDA types to each column
+    - Writes the cleaned dataset and EDA results to disk
+    - Generates and saves summary statistics and plots
+
+    If no valid data source is provided, prompts the user
+    to optionally load the default dataset.
+    """
     df = None
     if args.db_connection and not args.csv_path and args.path:
         df = pg_load(args.path)
@@ -62,13 +85,9 @@ def main():
         logger.info("No data loaded, exiting")
         return
 
-    # print(df.sample(n=5).to_string(index=False))
-    # Cleaning
-    df_rows = df.shape[0]
-    # df_print(df)
     df = clean_pipeline(df)
     df = assign_column_eda_types(df)
-    # df_print(df)
+    write_df(df)
     summary = generate_summary(df)
     write_json(summary)
     write_summary_table(summary)

@@ -1,3 +1,18 @@
+"""
+profiler.py
+
+Provides functions for assigning EDA-type tags to DataFrame columns and generating
+summary statistics for exploratory data analysis.
+
+Public Functions:
+- profile(df): Orchestrates tagging columns with EDA types.
+- assign_column_eda_types(df): Tags each column with an `eda_type` metadata attribute.
+- generate_summary(df): Produces a summary dictionary based on `eda_type`.
+
+Private Functions:
+- _is_id_column(col_series): Detects whether a column name suggests it's an ID.
+"""
+
 from .log_setup.setup import setup, logging
 import pandas as pd
 from pandas.core.generic import NDFrame
@@ -9,16 +24,18 @@ logger = logging.getLogger(__name__)
 setup(logger)
 
 
-def profile(df):
-    assign_column_eda_types(df)
-    return df
+def assign_column_eda_types(df: pd.DataFrame) -> pd.DataFrame:
+    """Assigns a custom `eda_type` attribute to each column in the DataFrame.
 
+    EDA types help downstream processing determine how to summarize or visualize a column.
+    Supported `eda_type` values include: 'unhashable', 'boolean', 'date',
+    'primary id', 'foreign_id', 'category', 'numeric', 'other'.
 
-def assign_column_eda_types(df: pd.DataFrame):
-    """
-    function that will assign an EDA type to each column, via monkey
-    patching, that will profiling to determine the appropriate analysis
-    method for each column
+    Args:
+        df (pd.DataFrame): The DataFrame whose columns will be tagged.
+
+    Returns:
+        pd.DataFrame: The modified DataFrame with EDA types assigned as metadata.
     """
     logger.info("Assigning EDA types to columns:")
     NDFrame._metadata += ["eda_type"]
@@ -47,17 +64,15 @@ def assign_column_eda_types(df: pd.DataFrame):
     return df
 
 
-def generate_summary(df: pd.DataFrame):
-    """
-    Generate a summary dictionary with basic profiling stats for each column
-    based on its `eda_type` attribute.
+def generate_summary(df: pd.DataFrame) -> dict:
+    """Generates a summary dictionary for the DataFrame using its EDA-tagged columns.
 
-    Parameters:
-        df (pd.DataFrame): A DataFrame with `eda_type` metadata on its columns.
+    Args:
+        df (pd.DataFrame): A DataFrame with `eda_type` metadata on each column.
 
     Returns:
-        dict: A dictionary where each key is a column name and each value is
-              a sub-dictionary of relevant summary statistics.
+        dict: A dictionary with column names as keys and dictionaries of summary
+        statistics as values.
     """
     logger.info("Beginning generating statistical summary")
 
@@ -120,6 +135,17 @@ def generate_summary(df: pd.DataFrame):
 
 
 def _is_id_column(col_series: pd.Series) -> bool:
+    """Detects whether a column name likely refers to an ID.
+    Args:
+        col_series (pd.Series): The column to test.
+
+    Returns:
+        bool: True if the name looks like an ID field, else False.
+
+    Examples:
+        >>> _is_id_column(pd.Series(name='user_id'))  # True
+        >>> _is_id_column(pd.Series(name='created_at'))  # False
+    """
     col_name = col_series.name
     return re.search(
         r"((?:(?<=_)|^)id(?=_))|.*id$", col_name, re.IGNORECASE

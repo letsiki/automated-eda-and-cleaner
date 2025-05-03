@@ -1,3 +1,9 @@
+"""
+utility.py
+
+printing functions for dataframe and EDA types
+"""
+
 from tabulate import tabulate
 import pandas as pd
 

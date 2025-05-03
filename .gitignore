@@ -6,3 +6,4 @@ data/Kaggle*.csv
 data/medical*.csv
 data/test*.csv
 output/
+uri.txt

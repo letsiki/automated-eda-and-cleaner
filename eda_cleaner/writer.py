@@ -10,6 +10,10 @@ OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
+def write_df(df: pd.DataFrame) -> None:
+    df.to_csv(OUTPUT_DIR + "/final_table.csv", mode="w")
+
+
 def write_json(summary: dict):
     """
     Save summary dictionary to a JSON file.
