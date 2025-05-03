@@ -40,7 +40,7 @@
 
 1. Clone the repo:
 
-<pre>git clone https://github.com/yourusername/eda_cleaner.git
+<pre>git clone git@github.com:letsiki/eda_cleaner.git
 cd eda_cleaner</pre>
 
 2. Setup environment:
@@ -58,7 +58,7 @@ You can run `eda_cleaner` as a CLI tool in one of three ways:
 
 ### **2\. Load from a CSV file**
 
-<pre>python -m eda_cleaner.cli -c data/my_file.csv</pre>
+<pre>python -m eda_cleaner.cli -c my_file.csv</pre>
 
 ### **3\. Use the default dataset**
 
