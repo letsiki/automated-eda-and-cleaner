@@ -87,11 +87,11 @@ def main():
 
     df = clean_pipeline(df)
     df = assign_column_eda_types(df)
-    write_df(df)
     summary = generate_summary(df)
     write_json(summary)
     write_summary_table(summary)
     generate_plots(df)
+    write_df(df)
 
 
 if __name__ == "__main__":

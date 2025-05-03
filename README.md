@@ -45,15 +45,8 @@ cd eda_cleaner</pre>
 
 2. Setup environment:
 
-<pre># Option 1: Using Conda
-
-conda env create -f environment.yml
-
-conda activate eda_cleaner
-
-# Option 2: Using Docker
-
-docker-compose up</pre>
+<pre>conda env create -f environment.yml
+conda activate eda_cleaner</pre>
 
 ## **⚙️ Usage**
 
@@ -80,31 +73,40 @@ Results are saved in the `output/` directory:
 
 * `summary_table.csv` — Tabular EDA summary
 
+* `summary_table.md` — Tabular EDA summary
+
 * `summary.json` — JSON-formatted summary with stats and column types
 
 * `plots/` — Histogram or bar chart per column, based on inferred type
 
 ## **🧠 Project Structure**
 
-eda\_cleaner/  
-├── cleaner.py           \# Cleaning pipeline  
-├── cli.py               \# Command-line interface  
-├── loader.py            \# Data loading logic  
-├── profiler.py          \# Column-type tagging \+ summary  
-├── visualizer.py        \# EDA plots  
-├── writer.py            \# Writes outputs  
-├── log\_setup/           \# Logging configuration  
+``` bash
+eda_cleaner/  
+├── cleaner.py           # Cleaning pipeline  
+├── cli.py               # Command-line interface  
+├── loader.py            # Data loading logic  
+├── profiler.py          # Column-type tagging \+ summary  
+├── visualizer.py        # EDA plots  
+├── writer.py            # Writes outputs  
+├── utility.py           # printing utilities  
+├── log_setup/           # Logging configuration  
 │   └── setup.py
-├── data/                \# Default dataset  
+├── data/                # Default dataset  
 │   └── global-air-pollution-dataset.csv  
-├── output/              \# Results (auto-generated)  
-│   ├── cleaned\_data.csv  
-│   ├── summary\_table.csv  
+├── output/              # Results (auto-generated)  
+│   ├── cleaned_data.csv  
+│   ├── summary_table.csv  
+│   ├── summary_table.md  
 │   ├── summary.json  
 │   └── plots/  
-├── environment.yml      \# Conda environment definition  
-├── docker-compose.yml   \# Dockerized environment  
+├── tests/  
+│   ├── test_cleaner.py  
+│   ├── test_loader.py  
+├── environment.yml      # Conda environment definition  
+├── .gitignore  
 └── README.md
+```
 
 ## **🔧 Dev & Contribution**
 
@@ -112,8 +114,6 @@ eda\_cleaner/
 
 * Logging integrated throughout via `log_setup`
 
-* Contributions welcome: open an issue or PR\!
-
 ## **📜 License**
 
-MIT
+[MIT](https://github.com/letsiki/eda_cleaner/blob/main/LICENSE)

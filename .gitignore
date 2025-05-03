@@ -7,3 +7,4 @@ data/medical*.csv
 data/test*.csv
 output/
 uri.txt
+data/notebook_resources/

@@ -11,7 +11,9 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 def write_df(df: pd.DataFrame) -> None:
-    df.to_csv(OUTPUT_DIR + "/final_table.csv", mode="w")
+    logger.info("Exporting clean dataframe to csv")
+    df.to_csv(OUTPUT_DIR + "/clean_data.csv", mode="w")
+    logger.info("Exported")
 
 
 def write_json(summary: dict):
@@ -47,10 +49,10 @@ def write_summary_table(summary: dict, format: str = "all"):
 
     error_flag = True
     if format in ("csv", "all"):
-        df.to_csv(OUTPUT_DIR + "/summary.csv", index=False)
+        df.to_csv(OUTPUT_DIR + "/summary_table.csv", index=False)
         error_flag = False
     if format in ("md", "all"):
-        df.to_markdown(buf=OUTPUT_DIR + "/summary.md")
+        df.to_markdown(buf=OUTPUT_DIR + "/summary_table.md")
         error_flag = False
     if error_flag:
         raise ValueError("Unsupported format: choose 'csv' or 'md'")
