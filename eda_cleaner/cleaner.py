@@ -221,7 +221,6 @@ def _is_float_that_can_be_int(col_series: pd.Series) -> bool:
 
 
 def _is_binary_string(col_series: pd.Series) -> bool:
-    """ """
     return (
         pd_types.is_object_dtype(col_series)
         and col_series.dropna().apply(str).str.lower().nunique() == 2

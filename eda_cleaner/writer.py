@@ -1,3 +1,20 @@
+"""
+writer.py
+
+This module handles all export operations for the data cleaning and EDA pipeline.
+It writes cleaned DataFrames to CSV, saves profiling summaries as JSON, and
+outputs flat summary tables as CSV or Markdown for easy viewing and sharing.
+
+Functions:
+- write_df(df): Save the cleaned DataFrame to 'output/clean_data.csv'.
+- write_json(summary): Export the profiling summary dictionary to 'output/summary.json'.
+- write_summary_table(summary, format): Flatten and export selected summary stats
+  to 'summary_table.csv' and/or 'summary_table.md'.
+
+All output is saved in the local 'output/' directory. Logging is used to track each step.
+"""
+
+
 from .log_setup.setup import setup, logging
 import json
 import pandas as pd

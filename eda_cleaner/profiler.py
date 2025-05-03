@@ -121,18 +121,6 @@ def generate_summary(df: pd.DataFrame) -> dict:
     logger.info("Finished generating summary")
     return summary
 
-    # ---------------The alternative returns-----------------------
-    # return json.dumps(summary, indent=4, default=str)
-
-    # below will also list
-    # unrelated metrics for each column with the
-    # value of null
-    # -------------------------------------------
-    # return pd.DataFrame.from_dict(summary).to_json(
-    #     indent=4,
-    # )  # , orient="index" would reverse the outer-keys of the dict
-    # --------------------------------------------------------------
-
 
 def _is_id_column(col_series: pd.Series) -> bool:
     """Detects whether a column name likely refers to an ID.
