@@ -5,6 +5,7 @@ import pandas.api.types as pd_types
 
 logger = logging.getLogger(__name__)
 setup(logger)
+logger.setLevel(logging.DEBUG)
 
 
 def clean_pipeline(df):
@@ -118,18 +119,19 @@ def handle_missing_values(df: pd.DataFrame, drop_thres=0.5):
     logger.info("Handling missing Values")
     for column in df.columns:
         missing_values_prc = df[column].isnull().mean() * 100
+        if missing_values_prc == 0:
+            logger.info(
+                f"{df[column].name} column has none of its values missing, skipping"
+            )
+            continue
         logger.info(
             f"{df[column].name} column has {round(missing_values_prc)}% of its values missing"
         )
-        if missing_values_prc == 0:
-            continue
-        elif missing_values_prc >= 50:
+        if missing_values_prc >= 50:
             logger.info(f"Dropping column {df[column].name}")
             df = df.drop(column, axis=1)
         else:
-            logger.info("Beginning Imputation")
             df[column] = _impute(df[column])
-        logger.info("Moving on")
     logger.info("Finished Handling Missing Values")
     return df
 
@@ -149,6 +151,8 @@ def _coerce_series(col_series: pd.Series) -> pd.Series:
         Either col_series as is, or a copy of it with updated it type.
     """
     col_name = col_series.name  # Extracting column name from the series
+    col_dtype = col_series.dtype.name
+    logger.info(f"Initial dtype is {col_dtype}")
 
     if _is_float_that_can_be_int(col_series):
         col_series = col_series.astype("Int64")
@@ -159,6 +163,7 @@ def _coerce_series(col_series: pd.Series) -> pd.Series:
         logger.info(f"Changed {col_name} from numeric to string")
 
     elif _is_binary_string(col_series):
+        logger.info('It is a binary string')
         col_series = _validate_binary_col(col_series)
 
     elif _is_numeric_binary(col_series):
@@ -166,6 +171,10 @@ def _coerce_series(col_series: pd.Series) -> pd.Series:
         logger.info(f"Changed {col_name}'s dtype to boolean")
 
     col_series = _convert_dates(col_series)
+    if col_dtype == col_series.dtype.name:
+        logger.info("No change needed")
+    else:
+        logger.info(f"Final dtype is {col_series.dtype.name}")
     return col_series
 
 
@@ -182,7 +191,7 @@ def _is_binary_string(col_series: pd.Series) -> bool:
     """ """
     return (
         pd_types.is_object_dtype(col_series)
-        and col_series.apply(str).str.lower().nunique(dropna=True) == 2
+        and col_series.dropna().apply(str).str.lower().nunique() == 2
     )
 
 
@@ -215,15 +224,21 @@ def _convert_dates(col_series: pd.Series) -> pd.Series:
 def _impute(col_series: pd.Series, nmode="median") -> pd.Series:
     """
     Using nmode to impute the values of the provided column
-    In case of invalid input the default nmode will be used,
+    In case of invalid input the default nmode will be used.
+
+    Note:
+        Only addresses non-categorical, non-id columns
     """
-    logger.info(col_series.name)
-    logger.info(col_series.dtype.name)
-    logger.info(col_series.sample(5))
+
     if (
         pd_types.is_numeric_dtype(col_series)
-        and col_series.nunique(dropna=True) < 13
+        and not _is_categorical(col_series)
+        and not _is_id_column(col_series)
     ):
+        logger.info(
+            f"Initiating imputation on {col_series.name} of dtype {col_series.dtype.name}"
+        )
+        logger.info(col_series.dtype.name)
         if nmode == "median":
             logger.info("Performing imputation with 'median'")
             col_series = col_series.fillna(col_series.median())
@@ -235,10 +250,19 @@ def _impute(col_series: pd.Series, nmode="median") -> pd.Series:
             logger.info(f"Performing imputation with '{default_nmode}'")
             func = getattr(pd.Series, default_nmode)
             col_series = col_series.fillna(func(col_series))
-    elif pd_types.is_bool_dtype or isinstance(
-        col_series, pd.CategoricalDtype
-    ):
-        col_series = col_series.fillna(col_series.mode())
+
+    # DEPRECATED
+    # -----------------------------------------------------
+    # elif pd_types.is_bool_dtype or isinstance(
+    #     col_series, pd.CategoricalDtype
+    # ):
+    #     col_series = col_series.fillna(col_series.mode())
+
+    else:
+        logger.info(
+            f"{col_series.name} column, unsuitable for imputation, skipping."
+        )
+
     return col_series
 
 
@@ -290,6 +314,10 @@ def _validate_binary_col(col_series: pd.Series):
         col_series = col_series.astype("string")
 
     return col_series
+
+
+def _is_categorical(col_series: pd.Series) -> bool:
+    return col_series.nunique(dropna=True) < 13
 
 
 def _yes_no_to_bool(x):

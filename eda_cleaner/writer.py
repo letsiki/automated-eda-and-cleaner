@@ -1,7 +1,6 @@
 from .log_setup.setup import setup, logging
 import json
 import pandas as pd
-from pathlib import Path
 import os
 
 logger = logging.getLogger(__name__)
@@ -15,8 +14,10 @@ def write_json(summary: dict):
     """
     Save summary dictionary to a JSON file.
     """
+    logger.info("Saving summary to a semi-structured JSON format")
     with open(OUTPUT_DIR + "/summary.json", "w") as f:
         json.dump(summary, f, indent=4, default=str)
+    logger.info("Saved")
 
 
 def write_summary_table(summary: dict, format: str = "all"):
@@ -24,6 +25,7 @@ def write_summary_table(summary: dict, format: str = "all"):
     Flatten summary dictionary into a table and write as CSV or Markdown.
     Filters out sub-dictionaries (like value_counts) and unhashable columns.
     """
+    logger.info("Saving summary to a table format (csv, md)")
     summary_table = []
 
     for col, stats in summary.items():
@@ -48,3 +50,5 @@ def write_summary_table(summary: dict, format: str = "all"):
         error_flag = False
     if error_flag:
         raise ValueError("Unsupported format: choose 'csv' or 'md'")
+
+    logger.info("Saved")

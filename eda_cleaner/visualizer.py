@@ -16,10 +16,12 @@ os.makedirs(PLOT_OUTPUT_DIR, exist_ok=True)
 def save_plot(fig, name):
     fig.tight_layout()
     fig.savefig(os.path.join(PLOT_OUTPUT_DIR, f"{name}.png"))
+    logger.info(f"Saved {name}.png")
     plt.close(fig)
 
 
-def visualize(df):
+def generate_plots(df):
+    logger.info("Generating column based plots")
     for col in df.columns:
         eda_type = getattr(df[col], "eda_type", None)
         if eda_type == "numeric":
@@ -43,15 +45,20 @@ def visualize(df):
         elif eda_type == "date":
             fig, ax = plt.subplots()
 
-            bucket_datetime_series(df[col]).plot(ax=ax)
+            _bucket_datetime_series(df[col]).plot(ax=ax)
             ax.set_title(f"Time series of {col}")
             save_plot(fig, f"date_{col}")
+
+    logger.info("Finished generating column based plots")
+    _plot_correlation_heatmap(df)
 
 
 import pandas as pd
 
 
-def bucket_datetime_series(s: pd.Series, freq: str = None) -> pd.Series:
+def _bucket_datetime_series(
+    s: pd.Series, freq: str = None
+) -> pd.Series:
     s = s.dropna()
 
     # Drop timezone if present to avoid warnings
@@ -76,8 +83,16 @@ def bucket_datetime_series(s: pd.Series, freq: str = None) -> pd.Series:
     # Return full distribution
     return bucketed.value_counts().sort_index()
 
-def plot_correlation_heatmap(df: pd.DataFrame, output_path: str = PLOT_OUTPUT_DIR + "/correlation_heatmap.png"):
-    numeric_cols = [col_name for col_name in df.columns if df[col_name].eda_type == 'numeric']
+
+def _plot_correlation_heatmap(
+    df: pd.DataFrame,
+    output_path: str = PLOT_OUTPUT_DIR + "/correlation_heatmap.png",
+):
+    numeric_cols = [
+        col_name
+        for col_name in df.columns
+        if df[col_name].eda_type == "numeric"
+    ]
 
     # # Exclude constant or ID-like columns
     # filtered_cols = [
@@ -86,14 +101,25 @@ def plot_correlation_heatmap(df: pd.DataFrame, output_path: str = PLOT_OUTPUT_DI
     # ]
 
     if len(numeric_cols) < 2:
-        print("Not enough valid numeric variables for a correlation heatmap.")
+        logger.info(
+            "Not enough valid numeric variables for a correlation heatmap."
+        )
         return
 
+    logger.info("Generating correlation heatmap for the dataset")
     corr = df[numeric_cols].corr(method="pearson")
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", center=0, linewidths=0.5)
+    sns.heatmap(
+        corr,
+        annot=True,
+        fmt=".2f",
+        cmap="coolwarm",
+        center=0,
+        linewidths=0.5,
+    )
     plt.title("Correlation Heatmap (Numeric Variables)")
     plt.tight_layout()
     plt.savefig(output_path)
+    logger.info("Saved correlation heatmap")
     plt.close()

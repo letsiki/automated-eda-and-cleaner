@@ -1,6 +1,5 @@
 from .log_setup.setup import setup, logging
 import pandas as pd
-import numpy as np
 from pandas.core.generic import NDFrame
 import pandas.api.types as pd_types
 import re
@@ -8,7 +7,6 @@ import re
 
 logger = logging.getLogger(__name__)
 setup(logger)
-logger.handlers[0].setLevel(logging.INFO)
 
 
 def profile(df):
@@ -22,6 +20,7 @@ def assign_column_eda_types(df: pd.DataFrame):
     patching, that will profiling to determine the appropriate analysis
     method for each column
     """
+    logger.info("Assigning EDA types to columns:")
     NDFrame._metadata += ["eda_type"]
     for col_name in df.columns:
         if not all(map(pd_types.is_hashable, df[col_name])):
@@ -42,8 +41,9 @@ def assign_column_eda_types(df: pd.DataFrame):
             df[col_name].eda_type = "numeric"
         else:
             df[col_name].eda_type = "other"
+        logger.info(f"Assigned '{df[col_name].eda_type}' to {col_name}")
+    logger.info("Finished assigning EDA types")
 
-    logger.debug([col_series.eda_type for _, col_series in df.items()])
     return df
 
 
@@ -59,6 +59,8 @@ def generate_summary(df: pd.DataFrame):
         dict: A dictionary where each key is a column name and each value is
               a sub-dictionary of relevant summary statistics.
     """
+    logger.info("Beginning generating statistical summary")
+
     summary = {}
 
     for col in df.columns:
@@ -101,7 +103,7 @@ def generate_summary(df: pd.DataFrame):
             col_summary["value_counts"] = vc.to_dict()
 
         summary[col] = col_summary
-
+    logger.info("Finished generating summary")
     return summary
 
     # ---------------The alternative returns-----------------------

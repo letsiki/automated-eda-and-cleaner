@@ -12,9 +12,8 @@ from .log_setup.setup import setup, logging
 from .loader import pg_load, csv_load
 from .cleaner import clean_pipeline
 from .profiler import assign_column_eda_types, generate_summary
-from .utility import df_print
 from .writer import write_json, write_summary_table
-from .visualizer import visualize, plot_correlation_heatmap
+from .visualizer import generate_plots
 
 
 # _URI = "postgresql://postgres:Password21!!!@localhost:5432/pagila"
@@ -66,15 +65,14 @@ def main():
     # print(df.sample(n=5).to_string(index=False))
     # Cleaning
     df_rows = df.shape[0]
-    df_print(df)
+    # df_print(df)
     df = clean_pipeline(df)
     df = assign_column_eda_types(df)
-    df_print(df)
+    # df_print(df)
     summary = generate_summary(df)
     write_json(summary)
     write_summary_table(summary)
-    visualize(df)
-    plot_correlation_heatmap(df)
+    generate_plots(df)
 
 
 if __name__ == "__main__":

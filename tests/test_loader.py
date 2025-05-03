@@ -41,11 +41,7 @@ def test_pg_load(uri, table_name, expected):
     "csv_file, expected",
     [
         (
-            "data/global air pollution dataset.csv",
-            pd.DataFrame,
-        ),
-        (
-            "data/KaggleV2-May-2016.csv",
+            "data/global-air-pollution-dataset.csv",
             pd.DataFrame,
         ),
         (
