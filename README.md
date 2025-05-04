@@ -75,9 +75,25 @@ Results are saved in the `output/` directory:
 
 * `summary_table.md` — Tabular EDA summary
 
-* `summary.json` — JSON-formatted summary with stats and column types
+* `summary.json` — JSON-formatted summary (preferred) with stats and column types
 
 * `plots/` — Histogram or bar chart per column, based on inferred type
+
+## **📖 Output Explanation**
+
+* In the summaries, each column has an associated EDA type
+
+* EDA types go beyond the standard Pandas Dataframe's dtype
+
+* They essentially determine the real type of data, regardless of the dtype
+
+* If for example, we have an 'Int64' value, like month numbers, it will correctly be assigned to an EDA type of 'category'
+
+* If instead, we had another 'Int64', representing the goals Ronaldo scored, it would be assigned to the 'numeric' EDA type.
+
+* EDA types are crucial for the eda_cleaner, as they determine the kind of metrics that will appear for each column in the summaries, but also determine the appropriate plot type to be generated (if there is one).
+
+* Most plots are based on just one column. If however, a dataset contains more than one column of 'numeric' EDA type (numbers but not categorical), a correlation heatmap plot will be generated.
 
 ## **🧠 Project Structure**
 
