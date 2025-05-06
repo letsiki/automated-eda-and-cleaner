@@ -32,7 +32,7 @@ from argparse import ArgumentParser
 from .log_setup.setup import setup, logging
 from .loader import pg_load, csv_load
 from .cleaner import clean_pipeline
-from .profiler import assign_column_eda_types, generate_summary
+from .profiler import generate_summary
 from .writer import write_json, write_summary_table, write_df
 from .visualizer import generate_plots
 
@@ -86,7 +86,6 @@ def main():
         return
 
     df = clean_pipeline(df)
-    df = assign_column_eda_types(df)
     summary = generate_summary(df)
     write_json(summary)
     write_summary_table(summary)

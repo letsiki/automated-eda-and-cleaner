@@ -14,7 +14,6 @@ Functions:
 All output is saved in the local 'output/' directory. Logging is used to track each step.
 """
 
-
 from .log_setup.setup import setup, logging
 import json
 import pandas as pd
@@ -53,7 +52,7 @@ def write_summary_table(summary: dict, format: str = "all"):
 
     for col, stats in summary.items():
         # Only include columns with basic stats (i.e., not unhashable-only)
-        if isinstance(stats, dict) and "eda_type" in stats:
+        if isinstance(stats, dict):
             row = {"column": col}
             for k, v in stats.items():
                 if not isinstance(

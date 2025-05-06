@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import seaborn as sns
 import pandas as pd
+import pandas.api.types as pd_types
 
 logger = logging.getLogger(__name__)
 setup(logger)
@@ -59,29 +60,29 @@ def generate_plots(df: pd.DataFrame) -> None:
     """
     logger.info("Generating column based plots")
     for col in df.columns:
-        eda_type = getattr(df[col], "eda_type", None)
-        if eda_type == "numeric":
+        series = df[col]
+        if pd_types.is_numeric_dtype(series):
             fig, ax = plt.subplots()
-            sns.histplot(df[col].dropna(), kde=True, ax=ax)
+            sns.histplot(series.dropna(), kde=True, ax=ax)
             ax.set_title(f"Distribution of {col}")
             save_plot(fig, f"hist_{col}")
 
-        elif eda_type == "boolean":
+        elif pd_types.is_bool_dtype(series):
             fig, ax = plt.subplots()
-            df[col].value_counts().plot(kind="bar", ax=ax)
+            series.value_counts().plot(kind="bar", ax=ax)
             ax.set_title(f"Boolean distribution of {col}")
             save_plot(fig, f"bool_{col}")
 
-        elif eda_type == "category":
+        elif series.dtype.name == "category":
             fig, ax = plt.subplots()
-            df[col].value_counts().head(15).plot(kind="bar", ax=ax)
+            series.value_counts().head(15).plot(kind="bar", ax=ax)
             ax.set_title(f"Top categories in {col}")
             save_plot(fig, f"cat_{col}")
 
-        elif eda_type == "date":
+        elif pd_types.is_datetime64_any_dtype(series):
             fig, ax = plt.subplots()
 
-            _bucket_datetime_series(df[col]).plot(ax=ax)
+            _bucket_datetime_series(series).plot(ax=ax)
             ax.set_title(f"Time series of {col}")
             save_plot(fig, f"date_{col}")
 
@@ -152,9 +153,7 @@ def _plot_correlation_heatmap(
         Skips plotting if fewer than 2 valid numeric columns are present.
     """
     numeric_cols = [
-        col_name
-        for col_name in df.columns
-        if df[col_name].eda_type == "numeric"
+        col for col in df.columns if pd_types.is_numeric_dtype(df[col])
     ]
 
     if len(numeric_cols) < 2:

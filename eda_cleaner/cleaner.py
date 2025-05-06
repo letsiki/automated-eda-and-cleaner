@@ -38,7 +38,8 @@ def clean_pipeline(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = standardize_column_names(df)
     df = remove_duplicates(df)
-    df = coerce_data_types(df)
+    df = coerce_nullable_data_types(df)
+    df = coerce_eda_types(df)
     df = handle_missing_values(df)
     return df
 
@@ -111,7 +112,7 @@ def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
 
 # will rename to coerce nullable data types
 # This one is done for compatibility
-def coerce_data_types(df: pd.DataFrame) -> pd.DataFrame:
+def coerce_nullable_data_types(df: pd.DataFrame) -> pd.DataFrame:
     """
     Processes column series, and applies _coerce_series to
     each resulting in a dataframe with the correct data types
@@ -151,7 +152,7 @@ def coerce_data_types(df: pd.DataFrame) -> pd.DataFrame:
             nullable_df[col] = series.astype("boolean")
         elif inferred_dtype in {"string", "unicode", "datetime"}:
             try:
-                nullable_df[col] = pd.to_datetime(nullable_df)
+                nullable_df[col] = series.astype("datetime64[ns]")
             except:
                 nullable_df[col] = series.astype("string")
         else:
@@ -163,14 +164,24 @@ def coerce_data_types(df: pd.DataFrame) -> pd.DataFrame:
 
 def coerce_eda_types(df: pd.DataFrame) -> pd.DataFrame:
     """
-    This one will received nullable dtypes
+    This one will receive nullable dtypes
     0, 1 and true FalsE will be converted to boolean and continue
     id columns will be converted to strings
     It will enforce categorical on string, int of less than 13 nunique
-
-
     """
-    pass
+    for col in df.columns:
+        series = df[col]
+        if _is_id_column(series):
+            df[col] = series.astype("string")
+            logger.info(f"Changed {col} from numeric to string")
+        elif _is_binary_string(series):
+            df[col] = _validate_binary_col(series)
+        elif _is_numeric_boolean(series):
+            df[col] = series.astype("boolean")
+        elif _is_categorical(series):
+            df[col] = series.astype("category")
+
+    return df
 
 
 def handle_missing_values(
@@ -213,65 +224,14 @@ def handle_missing_values(
     return df
 
 
-def _coerce_series(col_series: pd.Series) -> pd.Series:
-    """
-    Function that fixes a column series datatypes based on the following rules:
-    - If a column contains only 'yes' - 'no' or 'true' - 'false' both
-    case insensitive, the column will change its type to 'bool'
-    - If a column contains the word 'id' in its name (regex validation),
-    it will be converted to object.
-
-    Parameters:
-        col_series (pd.Series): The source column series
-
-    Returns:
-        Either col_series as is, or a copy of it with updated it type.
-    """
-    col_name = col_series.name  # Extracting column name from the series
-    col_dtype = col_series.dtype.name
-    logger.info(f"Initial dtype is {col_dtype}")
-
-    if _is_float_that_can_be_int(col_series):
-        col_series = col_series.astype("Int64")
-        logger.info(f"Changed {col_name}'s dtype to Int64")
-
-    if _is_id_column(col_series):
-        col_series = col_series.astype("string")
-        logger.info(f"Changed {col_name} from numeric to string")
-
-    elif _is_binary_string(col_series):
-        logger.info("It is a binary string")
-        col_series = _validate_binary_col(col_series)
-
-    elif _is_numeric_binary(col_series):
-        col_series = col_series.astype("boolean")
-        logger.info(f"Changed {col_name}'s dtype to boolean")
-
-    col_series = _convert_dates(col_series)
-    if col_dtype == col_series.dtype.name:
-        logger.info("No change needed")
-    else:
-        logger.info(f"Final dtype is {col_series.dtype.name}")
-    return col_series
-
-
-def _is_float_that_can_be_int(col_series: pd.Series) -> bool:
-    return (
-        pd_types.is_float_dtype(col_series)
-        and col_series.apply(
-            lambda x: pd.isna(x) or float(x).is_integer()
-        ).all()
-    )
-
-
 def _is_binary_string(col_series: pd.Series) -> bool:
     return (
-        pd_types.is_object_dtype(col_series)
+        pd_types.is_string_dtype(col_series)
         and col_series.dropna().apply(str).str.lower().nunique() == 2
     )
 
 
-def _is_numeric_binary(col_series: pd.Series) -> bool:
+def _is_numeric_boolean(col_series: pd.Series) -> bool:
     return pd_types.is_integer_dtype(col_series) and set(
         col_series.dropna().unique()
     ).issubset({0, 1})
@@ -282,19 +242,6 @@ def _is_id_column(col_series: pd.Series) -> bool:
     return pd_types.is_numeric_dtype(col_series) and re.search(
         r"((?:(?<=_)|^)id(?=_))|.*id$", col_name, re.IGNORECASE
     )
-
-
-def _convert_dates(col_series: pd.Series) -> pd.Series:
-    if pd_types.is_object_dtype(col_series) or pd_types.is_string_dtype(
-        col_series
-    ):
-        converted = pd.to_datetime(
-            col_series, errors="coerce", utc=True
-        )
-        if converted.notna().mean() > 0.8:
-            logger.info(f"Converted {col_series.name} to datetime")
-            return converted
-    return col_series
 
 
 def _impute(col_series: pd.Series, nmode="median") -> pd.Series:
@@ -380,13 +327,16 @@ def _validate_binary_col(col_series: pd.Series) -> pd.Series:
         col_series = col_series.map(_yes_no_to_bool).astype("boolean")
         logger.info(f"Changed {col_series.name}'s dtype to boolean")
     else:
-        col_series = col_series.astype("string")
+        col_series = col_series.astype("category")
 
     return col_series
 
 
 def _is_categorical(col_series: pd.Series) -> bool:
-    return col_series.nunique(dropna=True) < 13
+    return (
+        pd_types.is_hashable(col_series)
+        and col_series.nunique(dropna=True) < 13
+    )
 
 
 def _yes_no_to_bool(x):
