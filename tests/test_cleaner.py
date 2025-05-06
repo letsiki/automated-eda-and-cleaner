@@ -7,6 +7,7 @@ from eda_cleaner.cleaner import (
     remove_duplicates,
     coerce_data_types,
 )
+from eda_cleaner.utility import df_print
 
 
 @pytest.mark.parametrize(
@@ -75,9 +76,9 @@ from eda_cleaner.cleaner import (
     ],
 )
 def test_standardize_column_names(dic, expected):
-    assert (
-        standardize_column_names(pd.DataFrame(dic)).columns.to_list()
-        == pd.DataFrame(expected).columns.to_list()
+    pd.testing.assert_index_equal(
+        standardize_column_names(pd.DataFrame(dic)).columns,
+        pd.DataFrame(expected).columns,
     )
 
 
@@ -129,9 +130,25 @@ def test_standardize_column_names(dic, expected):
     ],
 )
 def test_remove_duplicates(dic, expected):
+
+    df_print(
+        remove_duplicates(pd.DataFrame(dic))
+        .reset_index(drop=True)
+        .sort_index()
+    )
+    df_print(pd.DataFrame(expected).reset_index(drop=True).sort_index())
     assert (
         remove_duplicates(pd.DataFrame(dic)).to_dict(orient="list")
         == expected
+    )
+    pd.testing.assert_frame_equal(
+        remove_duplicates(pd.DataFrame(dic))
+        .reset_index(drop=True)
+        .sort_index(),
+        pd.DataFrame(expected),
+        check_like=False,
+        check_dtype=True,
+        atol=1e-8,
     )
 
 
