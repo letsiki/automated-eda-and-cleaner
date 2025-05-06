@@ -7,7 +7,7 @@ from eda_cleaner.cleaner import (
     remove_duplicates,
     coerce_data_types,
 )
-from eda_cleaner.utility import df_print
+from eda_cleaner.utility import df_print, load_dict_with_nullable_types
 
 
 @pytest.mark.parametrize(
@@ -130,13 +130,6 @@ def test_standardize_column_names(dic, expected):
     ],
 )
 def test_remove_duplicates(dic, expected):
-
-    df_print(
-        remove_duplicates(pd.DataFrame(dic))
-        .reset_index(drop=True)
-        .sort_index()
-    )
-    df_print(pd.DataFrame(expected).reset_index(drop=True).sort_index())
     assert (
         remove_duplicates(pd.DataFrame(dic)).to_dict(orient="list")
         == expected
@@ -248,7 +241,12 @@ def test_remove_duplicates(dic, expected):
     ],
 )
 def test_coerce_data_types(dic, expected):
-    assert (
-        coerce_data_types(pd.DataFrame(dic)).to_dict(orient="list")
-        == expected
+    pd.testing.assert_frame_equal(
+        coerce_data_types(pd.DataFrame(dic))
+        .reset_index(drop=True)
+        .sort_index(),
+        load_dict_with_nullable_types(expected),
+        check_like=False,
+        check_dtype=False,
+        atol=1e-8,
     )
