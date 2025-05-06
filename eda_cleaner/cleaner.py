@@ -15,6 +15,7 @@ from .log_setup.setup import setup, logging
 import re
 import pandas.api.types as pd_types
 
+
 logger = logging.getLogger(__name__)
 setup(logger)
 
@@ -108,6 +109,8 @@ def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
     return no_dup_df
 
 
+# will rename to coerce nullable data types
+# This one is done for compatibility
 def coerce_data_types(df: pd.DataFrame) -> pd.DataFrame:
     """
     Processes column series, and applies _coerce_series to
@@ -121,12 +124,53 @@ def coerce_data_types(df: pd.DataFrame) -> pd.DataFrame:
         column series
     """
     logger.info("Handling data types")
-    for col_name in df.columns:
-        logger.info(f"Processing column {col_name}")
-        col_series = df[col_name]
-        df[col_name] = _coerce_series(col_series)
+    nullable_df = pd.DataFrame()
+    for col in df.columns:
+        logger.info(f"Processing column {col}")
+        series = df[col]
+        non_null_series = series.dropna()
+
+        if non_null_series.empty:
+            # default to object if there's nothing to infer
+            nullable_df[col] = series.astype("object")
+            continue
+
+        inferred_dtype = pd.api.types.infer_dtype(
+            non_null_series, skipna=True
+        )
+
+        # Map inferred dtype to a pandas nullable type
+        if inferred_dtype in {"integer"}:
+            nullable_df[col] = series.astype("Int64")
+        elif inferred_dtype in {"floating"}:
+            try:
+                nullable_df[col] = series.astype("Int64")
+            except:
+                nullable_df[col] = series.astype("Float64")
+        elif inferred_dtype in {"boolean"}:
+            nullable_df[col] = series.astype("boolean")
+        elif inferred_dtype in {"string", "unicode", "datetime"}:
+            try:
+                nullable_df[col] = pd.to_datetime(nullable_df)
+            except:
+                nullable_df[col] = series.astype("string")
+        else:
+            nullable_df[col] = series.astype("object")
+
     logger.info("Finished handling data types")
-    return df
+    return nullable_df
+
+
+def coerce_eda_types(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This one will received nullable dtypes
+    0, 1 and true FalsE will be converted to boolean and continue
+    id columns will be converted to strings
+    It will enforce categorical on string, int of less than 13 nunique
+
+
+    """
+    pass
 
 
 def handle_missing_values(
