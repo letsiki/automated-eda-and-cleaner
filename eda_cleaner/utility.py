@@ -6,6 +6,7 @@ printing functions for dataframe and EDA types
 
 from tabulate import tabulate
 import pandas as pd
+from pandas.core.generic import NDFrame
 
 
 def df_print(df: pd.DataFrame) -> None:
@@ -38,3 +39,14 @@ def print_eda_types(df: pd.DataFrame) -> None:
     for col_name, col_series in df.items():
         if eda_type := getattr(col_series, "eda_type", None):
             print(f"column {col_name}, has eda type of {eda_type}")
+
+
+def repatch_eda_type(
+    old_df: pd.DataFrame, new_df: pd.DataFrame
+) -> None:
+    NDFrame._metadata += ["eda_type"]
+    try:
+        new_df.eda_type = old_df.eda_type
+    except KeyError:
+        print("Unsuccessful assignment of EDA type")
+        raise
