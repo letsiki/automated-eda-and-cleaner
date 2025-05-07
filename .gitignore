@@ -8,3 +8,4 @@ data/test*.csv
 output/
 uri.txt
 data/notebook_resources/
+convert-df*.ipynb

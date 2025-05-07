@@ -28,7 +28,6 @@ def setup_console_handler(logger: logging.Logger) -> None:
     )
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-    logger.setLevel(logging.DEBUG)
 
 
 def setup_file_handler(
@@ -48,7 +47,6 @@ def setup_file_handler(
     )
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
-    logger.setLevel(logging.INFO)
 
 
 def setup_file_and_console_handler(
@@ -95,3 +93,5 @@ def setup(
         setup_file_and_console_handler(logger, filename, filemode)
     else:
         raise ValueError(f"Unsupported logging mode: {mode}")
+
+    logger.setLevel(logging.DEBUG)

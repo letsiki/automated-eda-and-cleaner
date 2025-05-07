@@ -255,13 +255,13 @@ def _impute(col_series: pd.Series, nmode="median") -> pd.Series:
 
     if (
         pd_types.is_numeric_dtype(col_series)
-        and not _is_categorical(col_series)
-        and not _is_id_column(col_series)
+        # and not _is_categorical(col_series) # coerce eda types eliminates
+        # and not _is_id_column(col_series)   # these two possibilities
     ):
         logger.info(
             f"Initiating imputation on {col_series.name} of dtype {col_series.dtype.name}"
         )
-        logger.info(col_series.dtype.name)
+        col_series = col_series.astype("Float64")
         if nmode == "median":
             logger.info("Performing imputation with 'median'")
             col_series = col_series.fillna(col_series.median())
@@ -270,9 +270,10 @@ def _impute(col_series: pd.Series, nmode="median") -> pd.Series:
             col_series = col_series.fillna(col_series.mean())
         else:
             default_nmode = _impute.__defaults__[0]
-            logger.info(f"Performing imputation with '{default_nmode}'")
-            func = getattr(pd.Series, default_nmode)
-            col_series = col_series.fillna(func(col_series))
+            _impute(col_series, nmode=default_nmode)
+
+        if (col_series.dropna() == col_series.astype(int)).all():
+            col_series = col_series.astype("Int64")
 
     else:
         logger.info(
@@ -292,7 +293,7 @@ def _validate_binary_col(col_series: pd.Series) -> pd.Series:
             lambda x: (
                 True
                 if (
-                    not x
+                    isinstance(x, type(pd.NA))
                     or str(x).lower() == "true"
                     or str(x).lower() == "false"
                 )
@@ -313,7 +314,7 @@ def _validate_binary_col(col_series: pd.Series) -> pd.Series:
             lambda x: (
                 True
                 if (
-                    not x
+                    isinstance(x, type(pd.NA))
                     or str(x).lower() == "yes"
                     or str(x).lower() == "no"
                 )
@@ -333,16 +334,17 @@ def _validate_binary_col(col_series: pd.Series) -> pd.Series:
 
 
 def _is_categorical(col_series: pd.Series) -> bool:
-    return (
-        pd_types.is_hashable(col_series)
-        and col_series.nunique(dropna=True) < 13
-    )
+    try:
+        verdict = col_series.nunique(dropna=True) < 13
+    except:
+        verdict = False
+    return verdict
 
 
 def _yes_no_to_bool(x):
     "Converts a value to True if it is 'yes', False otherwise"
-    if x is None:
-        return pd.NA
+    if isinstance(x, type(pd.NA)):
+        return x
     else:
         func = lambda x: True if x.lower() == "yes" else False
         return func(x)
@@ -350,7 +352,7 @@ def _yes_no_to_bool(x):
 
 def _true_false_to_bool(x):
     "Converts a value to True if it is 'true', False otherwise"
-    if x is None:
+    if isinstance(x, type(pd.NA)):
         return pd.NA
     else:
         func = lambda x: True if x.lower() == "true" else False

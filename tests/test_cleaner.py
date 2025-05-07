@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 from eda_cleaner.cleaner import (
     standardize_column_names,
-    handle_missing_values,
     remove_duplicates,
     coerce_nullable_data_types,
+    coerce_eda_types,
+    handle_missing_values,
 )
 
 
@@ -203,9 +204,314 @@ def test_remove_duplicates(dic, expected):
         ),
     ],
 )
-def test_coerce_data_types(dic, expected):
+def test_coerce_nullable_data_types(dic, expected):
     pd.testing.assert_frame_equal(
         coerce_nullable_data_types(pd.DataFrame(dic)),
+        expected,
+        check_dtype=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "dic, expected",
+    [
+        (
+            # dic0: verify id column to string
+            pd.DataFrame(
+                {
+                    "numid": pd.Series(
+                        list(range(10))
+                        + [
+                            None,
+                        ]
+                    ).astype("Int64")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "numid": pd.Series(
+                        list(range(10))
+                        + [
+                            None,
+                        ]
+                    )
+                    .astype("Int64")
+                    .astype("string")
+                }
+            ),
+        ),
+        (
+            # dic1: verify true-false string column to boolean
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        ["true", "FaLsE", "tRuE", "FALSE", None]
+                    ).astype("string")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [True, False, True, False, None]
+                    ).astype("boolean")
+                }
+            ),
+        ),
+        (  # dic2: verify yes-no column to boolean
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        ["yEs", "No", "yes", "NO", "no", None]
+                    ).astype("string")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [True, False, True, False, False, None]
+                    ).astype("boolean")
+                }
+            ),
+        ),
+        (
+            # dic3: verify 0-1 column to boolean
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [x % 2 for x in range(6)]
+                        + [
+                            None,
+                        ]
+                    ).astype("Int64")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [False, True, False, True, False, True, None]
+                    ).astype("boolean")
+                }
+            ),
+        ),
+        (
+            # dic4: int to categorical < 13
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        list(range(12))
+                        + [
+                            None,
+                        ]
+                    ).astype("Int64")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        list(range(12))
+                        + [
+                            None,
+                        ]
+                    )
+                    .astype("Int64")
+                    .astype("category")
+                }
+            ),
+        ),
+        (
+            # dict5: string to categorical <13
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [ch for ch in "abcdefghijkl"]
+                        + [
+                            None,
+                        ]
+                    ).astype("string")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [ch for ch in "abcdefghijkl"]
+                        + [
+                            None,
+                        ]
+                    )
+                    .astype("string")
+                    .astype("category")
+                }
+            ),
+        ),
+        (
+            # dic6: object to object (less than 13)
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        list(range(5))
+                        + [
+                            None,
+                        ]
+                        + [[1, "a"]]
+                    )
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        list(range(5))
+                        + [
+                            None,
+                        ]
+                        + [[1, "a"]]
+                    )
+                }
+            ),
+        ),
+        (
+            # dic7: string to not categorical > 12
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [ch for ch in "abcdefghijklmno"]
+                        + [
+                            None,
+                        ]
+                    ).astype("string")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        [ch for ch in "abcdefghijklmno"]
+                        + [
+                            None,
+                        ]
+                    ).astype("string")
+                }
+            ),
+        ),
+        (
+            # dic8: int to not categorical > 12
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        list(range(15))
+                        + [
+                            None,
+                        ]
+                    ).astype("Int64")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "column": pd.Series(
+                        list(range(15))
+                        + [
+                            None,
+                        ]
+                    ).astype("Int64")
+                }
+            ),
+        ),
+    ],
+)
+def test_coerce_eda_types(dic, expected):
+    pd.testing.assert_frame_equal(
+        coerce_eda_types(pd.DataFrame(dic)),
+        expected,
+        check_dtype=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "dic, expected",
+    [
+        (
+            # dic0: test column dropping
+            pd.DataFrame(
+                {
+                    "num": pd.Series(
+                        [n for n in range(30)] + [None] * 70
+                    ).astype("Int64"),
+                    "num2": pd.Series(list(range(100))),
+                }
+            ),
+            pd.DataFrame({"num2": pd.Series(list(range(100)))}),
+        ),
+        (
+            # dic1: test impute int with float median
+            pd.DataFrame(
+                {
+                    "num": pd.Series(
+                        [n for n in range(70)] + [None] * 30
+                    ).astype("Int64"),
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "num": pd.Series(
+                        [n for n in range(70)] + [34.5] * 30
+                    ).astype("Float64")
+                }
+            ),
+        ),
+        (
+            # dic2: test impute int with int median
+            pd.DataFrame(
+                {
+                    "num": pd.Series(
+                        [n for n in range(71)] + [None] * 30
+                    ).astype("Int64"),
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "num": pd.Series(
+                        [n for n in range(71)] + [35] * 30
+                    ).astype("Int64")
+                }
+            ),
+        ),
+        (
+            # dic3: test that categorical numerical does not get imputation
+            pd.DataFrame(
+                {
+                    "num": pd.Series([n for n in range(7)] + [None] * 3)
+                    .astype("Int64")
+                    .astype("category")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "num": pd.Series([n for n in range(7)] + [None] * 3)
+                    .astype("Int64")
+                    .astype("category")
+                }
+            ),
+        ),
+        (
+            # dic4: test that string does not get imputation
+            pd.DataFrame(
+                {
+                    "num": pd.Series(
+                        [ch for ch in "abcdefghijklmno"] + [None] * 3
+                    ).astype("string")
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "num": pd.Series(
+                        [ch for ch in "abcdefghijklmno"] + [None] * 3
+                    ).astype("string")
+                }
+            ),
+        ),
+    ],
+)
+def test_handle_missing_values(dic, expected):
+    pd.testing.assert_frame_equal(
+        handle_missing_values(pd.DataFrame(dic)),
         expected,
         check_dtype=True,
     )
