@@ -88,7 +88,6 @@ def main():
     df = clean_pipeline(df)
     summary = generate_summary(df)
     write_json(summary)
-    write_summary_table(summary)
     generate_plots(df)
     write_df(df)
 

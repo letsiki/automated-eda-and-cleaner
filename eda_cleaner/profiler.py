@@ -1,16 +1,11 @@
 """
 profiler.py
 
-Provides functions for assigning EDA-type tags to DataFrame columns and generating
-summary statistics for exploratory data analysis.
+Provides a function for generating summary statistics for exploratory
+data analysis.
 
 Public Functions:
-- profile(df): Orchestrates tagging columns with EDA types.
-- assign_column_eda_types(df): Tags each column with an `eda_type` metadata attribute.
-- generate_summary(df): Produces a summary dictionary based on `eda_type`.
-
-Private Functions:
-- _is_id_column(col_series): Detects whether a column name suggests it's an ID.
+- generate_summary(df): Produces a summary dictionary based on the data type.
 """
 
 from .log_setup.setup import setup, logging
@@ -35,7 +30,21 @@ def generate_summary(df: pd.DataFrame) -> dict:
     """
     print("*" * 90)
     logger.info("Beginning generating statistical summary")
+
     summary = {}
+
+    summary["_dataset_"] = {}
+    df_summary = summary["_dataset_"]
+    df_summary.update(
+        rows=df.shape[0],
+        columns=df.shape[1],
+        total_nr_of_cells=df.size,
+        total_missing_values=df.isna().sum().sum(),
+        column_names=[col for col in df.columns],
+        dtypes=[dtype.name for dtype in df.dtypes],
+        memory_usage=str(round(df.memory_usage().sum() / 10**6, 2))
+        + " MB's",
+    )
 
     for col in df.columns:
         series = df[col]
@@ -59,7 +68,7 @@ def generate_summary(df: pd.DataFrame) -> dict:
         if pd_types.is_numeric_dtype(series):
             col_summary["min"] = series.min()
             col_summary["max"] = series.max()
-            col_summary["mean"] = series.mean()
+            col_summary["mean"] = round(series.mean(), 4)
 
         elif pd_types.is_datetime64_any_dtype(series):
             min_val = series.min()

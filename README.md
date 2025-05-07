@@ -28,8 +28,6 @@
 
   * JSON summary with counts, stats, and inferred types
 
-  * Formatted summary table (`CSV`)
-
   * Visualizations (`PNG`)
 
 * 📝 Cleaned dataset export
@@ -69,11 +67,7 @@ Results are saved in the `output/` directory:
 
 * `cleaned_data.csv` — Cleaned dataset
 
-* `summary.json` — JSON-formatted summary (preferred) with stats and column types
-
-* `summary_table.csv` — Tabular EDA summary
-
-* `summary_table.md` — Tabular EDA summary
+* `summary.json` — JSON-formatted summary with stats and column types
 
 * `plots/` — Histogram or bar chart per column, based on inferred type
 
@@ -103,8 +97,6 @@ eda_cleaner/
 │   └── global-air-pollution-dataset.csv  
 ├── output/              # Results (auto-generated)  
 │   ├── cleaned_data.csv  
-│   ├── summary_table.csv  
-│   ├── summary_table.md  
 │   ├── summary.json  
 │   └── plots/  
 ├── tests/  
