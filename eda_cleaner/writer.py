@@ -27,7 +27,9 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 def write_df(df: pd.DataFrame) -> None:
+    print("*" * 90)
     logger.info("Exporting clean dataframe to csv")
+    print("*" * 90)
     df.to_csv(OUTPUT_DIR + "/clean_data.csv", mode="w")
     logger.info("Exported")
 
@@ -36,6 +38,7 @@ def write_json(summary: dict):
     """
     Save summary dictionary to a JSON file.
     """
+    print("*" * 90)
     logger.info("Saving summary to a semi-structured JSON format")
     with open(OUTPUT_DIR + "/summary.json", "w") as f:
         json.dump(summary, f, indent=4, default=str)
@@ -47,6 +50,7 @@ def write_summary_table(summary: dict, format: str = "all"):
     Flatten summary dictionary into a table and write as CSV or Markdown.
     Filters out sub-dictionaries (like value_counts) and unhashable columns.
     """
+    print("*" * 90)
     logger.info("Saving summary to a table format (csv, md)")
     summary_table = []
 

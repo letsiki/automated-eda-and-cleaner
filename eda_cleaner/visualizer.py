@@ -58,7 +58,9 @@ def generate_plots(df: pd.DataFrame) -> None:
         - Time series counts for datetime columns
         - A correlation heatmap if at least two numeric columns are present
     """
+    print("*" * 90)
     logger.info("Generating column based plots")
+    print("*" * 90)
     for col in df.columns:
         series = df[col]
         if pd_types.is_numeric_dtype(series):

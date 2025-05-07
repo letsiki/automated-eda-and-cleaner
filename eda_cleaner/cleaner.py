@@ -27,8 +27,9 @@ def clean_pipeline(df: pd.DataFrame) -> pd.DataFrame:
     Applies the following steps in order:
     1. Standardize column names (e.g., lowercase, snake_case)
     2. Remove exact duplicate rows
-    3. Coerce column types (booleans, dates, IDs, integers)
-    4. Handle missing values (drop columns with >50% missing, impute others)
+    3. Coerce nullable data types on columns
+    4. Coerce eda types data types on columns
+    5. Handle missing values (drop columns with >50% missing, impute others)
 
     Parameters:
         df (pd.DataFrame): The input DataFrame to be cleaned.
@@ -36,10 +37,15 @@ def clean_pipeline(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: The cleaned DataFrame.
     """
+    print("*" * 90)
     df = standardize_column_names(df)
+    print("*" * 90)
     df = remove_duplicates(df)
+    print("*" * 90)
     df = coerce_nullable_data_types(df)
+    print("*" * 90)
     df = coerce_eda_types(df)
+    print("*" * 90)
     df = handle_missing_values(df)
     return df
 
@@ -61,7 +67,7 @@ def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: DataFrame with standardized column names.
     """
     logger.info("Standardizing column names")
-
+    print("*" * 90)
     if df.iloc[:, 0].name.startswith("Unnamed"):
         logger.info("Removing pandas index column")
         df = df.iloc[:, 1:]
@@ -72,15 +78,21 @@ def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(
         "replacing whitespaces with '_', lowering case, and removing invalid characters"
     )
-    logger.info(f"Columns before operation {df.columns.to_list()}")
+    original_columns = df.columns.to_list()
     df.columns = (
         df.columns.str.strip()
         .str.lower()
         .str.replace(r"[ -]", "_", regex=True)
         .str.replace(r"[^\w]", "", regex=True)
     )
-    logger.info(f"Columns after operation {df.columns.to_list()}")
-    logger.info("Finished standardizing columns")
+    for original_col, new_col in zip(
+        original_columns, df.columns.to_list()
+    ):
+        if original_col == new_col:
+            logger.info(f"{original_col} remained unchanged")
+        else:
+            logger.info(f"{original_col} changed to {new_col}")
+    logger.info("Finished standardizing column names")
     return df
 
 
@@ -94,6 +106,7 @@ def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
     In any case we are removing duplicates with the 'keep-first' strategy
     """
     logger.info("Removing duplicate rows")
+    print("*" * 90)
     logger.info(f"{df.shape[0]} rows before operation")
     logger.info("Removing...")
     try:
@@ -114,8 +127,9 @@ def remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
 # This one is done for compatibility
 def coerce_nullable_data_types(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Processes column series, and applies _coerce_series to
-    each resulting in a dataframe with the correct data types
+    Processes column series, and applies casts them to the appropriate
+    pandas nullable data type.
+    Nullable data types are the ones that support pd.NA for missing values
 
     Parameters:
         df (pd.DataFrame): The source Dataframe
@@ -124,7 +138,8 @@ def coerce_nullable_data_types(df: pd.DataFrame) -> pd.DataFrame:
         df (pd.DataFrame): The source dataframe with updated
         column series
     """
-    logger.info("Handling data types")
+    logger.info("Converting columns to nullable data types")
+    print("*" * 90)
     nullable_df = pd.DataFrame()
     for col in df.columns:
         logger.info(f"Processing column {col}")
@@ -143,33 +158,49 @@ def coerce_nullable_data_types(df: pd.DataFrame) -> pd.DataFrame:
         # Map inferred dtype to a pandas nullable type
         if inferred_dtype in {"integer"}:
             nullable_df[col] = series.astype("Int64")
+            logger.info(f"Changed {col} to Int64")
         elif inferred_dtype in {"floating"}:
             try:
                 nullable_df[col] = series.astype("Int64")
+                logger.info(f"Changed {col} to Int64")
             except:
                 nullable_df[col] = series.astype("Float64")
+                logger.info(f"Changed {col} to Float64")
         elif inferred_dtype in {"boolean"}:
             nullable_df[col] = series.astype("boolean")
+            logger.info(f"Changed {col} to boolean")
         elif inferred_dtype in {"string", "unicode", "datetime"}:
             try:
                 nullable_df[col] = series.astype("datetime64[ns]")
+                logger.info(f"Changed {col} to datetime64[ns]")
             except:
                 nullable_df[col] = series.astype("string")
+                logger.info(f"Changed {col} to string")
         else:
             nullable_df[col] = series.astype("object")
+            logger.info(f"Changed {col} to object")
 
-    logger.info("Finished handling data types")
+    logger.info("Finished converting columns to nullable data types")
     return nullable_df
 
 
 def coerce_eda_types(df: pd.DataFrame) -> pd.DataFrame:
     """
-    This one will receive nullable dtypes
-    0, 1 and true FalsE will be converted to boolean and continue
-    id columns will be converted to strings
-    It will enforce categorical on string, int of less than 13 nunique
+    Processes column series, and  casts them to a type more suitable
+    for eda. It 'captures' categorical, id and hidden boolean columns
+
+    Parameters:
+        df (pd.DataFrame): The source Dataframe, expects a nullable
+        dtype (supporting pd.NA).
+
+    Returns:
+        df (pd.DataFrame): The source dataframe with updated
+        column series.
     """
+    logger.info("Converting columns to EDA-ready nullable types")
+    print("*" * 90)
     for col in df.columns:
+        logger.info(f"Processing column {col}")
         series = df[col]
         if _is_id_column(series):
             df[col] = series.astype("string")
@@ -178,9 +209,13 @@ def coerce_eda_types(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = _validate_binary_col(series)
         elif _is_numeric_boolean(series):
             df[col] = series.astype("boolean")
+            logger.info(f"Changed {col} from numeric to boolean")
         elif _is_categorical(series):
             df[col] = series.astype("category")
-
+            logger.info(f"Changed {col} to category data type")
+    logger.info(
+        "Finished converting columns to RDA-ready nullable types"
+    )
     return df
 
 
@@ -205,6 +240,7 @@ def handle_missing_values(
         pd.DataFrame: The DataFrame with missing values either dropped or imputed.
     """
     logger.info("Handling missing Values")
+    print("*" * 90)
     for column in df.columns:
         missing_values_prc = df[column].isnull().mean() * 100
         if missing_values_prc == 0:

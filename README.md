@@ -18,13 +18,11 @@
 
   * Removes duplicate rows
 
-  * Coerces types (numeric, date, boolean, etc.)
+  * Enforces nullable data types
+
+  * Converts data types, to ones more suitable for EDA
 
   * Handles missing values with sensible defaults
-
-* 🔍 Semantic type tagging:
-
-  * Assigns each column an `eda_type` like `boolean`, `category`, `numeric`, `date`, `primary id`, etc.
 
 * 📊 EDA outputs:
 
@@ -71,29 +69,22 @@ Results are saved in the `output/` directory:
 
 * `cleaned_data.csv` — Cleaned dataset
 
+* `summary.json` — JSON-formatted summary (preferred) with stats and column types
+
 * `summary_table.csv` — Tabular EDA summary
 
 * `summary_table.md` — Tabular EDA summary
-
-* `summary.json` — JSON-formatted summary (preferred) with stats and column types
 
 * `plots/` — Histogram or bar chart per column, based on inferred type
 
 ## **📖 Output Explanation**
 
-* In the summaries, each column has an associated EDA type
+* Columns end up being converted to data types suitable for analysis
 
-* EDA types go beyond the standard Pandas Dataframe's dtype
+* For example an id column of increamenting integers will be converted to a 'string', whereas a string column of very few unique values will be
+converted to 'category'
 
-* They essentially determine the real type of data, regardless of the dtype
-
-* If for example, we have an 'Int64' value, like month numbers, it will correctly be assigned to an EDA type of 'category'
-
-* If instead, we had another 'Int64', representing the goals Ronaldo scored, it would be assigned to the 'numeric' EDA type.
-
-* EDA types are crucial for the eda_cleaner, as they determine the kind of metrics that will appear for each column in the summaries, but also determine the appropriate plot type to be generated (if there is one).
-
-* Most plots are based on just one column. If however, a dataset contains more than one column of 'numeric' EDA type (numbers but not categorical), a correlation heatmap plot will be generated.
+* Most plots are based on just one column. If however, a dataset contains more than one column of 'Int64' or 'Float64' data type, a correlation heatmap plot will be generated.
 
 ## **🧠 Project Structure**
 
@@ -126,9 +117,11 @@ eda_cleaner/
 
 ## **🔧 Dev & Contribution**
 
-* Modular, testable functions for each step
+* Modular functions for each step
 
-* Logging integrated throughout via `log_setup`
+* Logging integrated throughout via `logging`
+
+* Fully tested using `pytest`
 
 ## **📜 License**
 

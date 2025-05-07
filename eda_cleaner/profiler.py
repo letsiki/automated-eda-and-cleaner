@@ -33,8 +33,8 @@ def generate_summary(df: pd.DataFrame) -> dict:
         dict: A dictionary with column names as keys and dictionaries of summary
         statistics as values.
     """
+    print("*" * 90)
     logger.info("Beginning generating statistical summary")
-
     summary = {}
 
     for col in df.columns:
