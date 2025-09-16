@@ -1,4 +1,4 @@
-# **eda\_cleaner**
+# **Automated EDA and Cleaner**
 
 **eda\_cleaner** is a Python-based CLI tool for **automated data cleaning** and **exploratory data analysis (EDA)**. It supports loading tabular data from PostgreSQL databases or CSV files, applies robust cleaning pipelines, infers semantic column types, and outputs clear summaries and visualizations.
 
